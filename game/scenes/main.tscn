@@ -1,0 +1,177 @@
+[gd_scene load_steps=17 format=3 uid="uid://bq8codefarm001"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
+sky_top_color = Color(0.78, 0.86, 0.84, 1)
+sky_horizon_color = Color(0.90, 0.88, 0.80, 1)
+ground_bottom_color = Color(0.55, 0.58, 0.50, 1)
+ground_horizon_color = Color(0.86, 0.84, 0.76, 1)
+sun_angle_max = 30.0
+sun_curve = 0.15
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMat")
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.90, 0.84, 0.74, 1)
+ambient_light_energy = 0.34
+tonemap_mode = 2
+ssao_enabled = false
+glow_enabled = false
+fog_enabled = false
+
+[sub_resource type="BoxMesh" id="TileMesh"]
+size = Vector3(1.22, 0.08, 1.22)
+
+[sub_resource type="StandardMaterial3D" id="TileMat"]
+albedo_color = Color(0.45, 0.58, 0.40, 1)
+roughness = 0.85
+metallic = 0.0
+
+[sub_resource type="CylinderMesh" id="EarthMesh"]
+top_radius = 3.15
+bottom_radius = 3.35
+height = 0.09
+radial_segments = 32
+
+[sub_resource type="StandardMaterial3D" id="EarthMat"]
+albedo_color = Color(0.42, 0.45, 0.38, 1)
+roughness = 1.0
+
+[sub_resource type="PrismMesh" id="GrassBlade"]
+size = Vector3(0.12, 0.55, 0.06)
+
+[sub_resource type="StandardMaterial3D" id="GrassMat"]
+albedo_color = Color(0.48, 0.66, 0.32, 1)
+roughness = 0.7
+
+[sub_resource type="SphereMesh" id="DroneBody"]
+radius = 0.22
+height = 0.44
+
+[sub_resource type="StandardMaterial3D" id="DroneMat"]
+albedo_color = Color(0.96, 0.93, 0.86, 1)
+roughness = 0.35
+metallic = 0.08
+
+[sub_resource type="SphereMesh" id="DroneEye"]
+radius = 0.07
+height = 0.14
+
+[sub_resource type="StandardMaterial3D" id="EyeMat"]
+albedo_color = Color(0.18, 0.20, 0.19, 1)
+roughness = 0.3
+
+[sub_resource type="CylinderMesh" id="DroneArm"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 0.28
+
+[sub_resource type="StandardMaterial3D" id="CopperMat"]
+albedo_color = Color(0.76, 0.50, 0.29, 1)
+roughness = 0.4
+metallic = 0.45
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.813798, -0.440982, 0.378872, 0, 0.651652, 0.758517, -0.581148, -0.617079, 0.530313, 4, 8, 2)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 0.88
+shadow_enabled = true
+shadow_bias = 0.03
+directional_shadow_mode = 1
+directional_shadow_fade_start = 0.8
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.754606, -0.439565, 0.487189, 0.000000, 0.742464, 0.669885, -0.656179, -0.505499, 0.560268, 2.550000, 3.550000, 2.950000)
+projection = 1
+current = true
+size = 3.85
+near = 0.1
+far = 80.0
+
+[node name="Farm" type="Node3D" parent="."]
+
+[node name="Earth" type="MeshInstance3D" parent="Farm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.16, 0)
+mesh = SubResource("EarthMesh")
+surface_material_override/0 = SubResource("EarthMat")
+
+[node name="Tile" type="MeshInstance3D" parent="Farm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("TileMesh")
+surface_material_override/0 = SubResource("TileMat")
+
+[node name="Grass" type="Node3D" parent="Farm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0)
+
+[node name="Blade1" type="MeshInstance3D" parent="Farm/Grass"]
+transform = Transform3D(0.96, 0, 0.28, 0, 1, 0, -0.28, 0, 0.96, 0.18, 0.28, 0.12)
+mesh = SubResource("GrassBlade")
+surface_material_override/0 = SubResource("GrassMat")
+
+[node name="Blade2" type="MeshInstance3D" parent="Farm/Grass"]
+transform = Transform3D(0.92, 0, -0.39, 0, 1, 0, 0.39, 0, 0.92, -0.16, 0.32, 0.08)
+mesh = SubResource("GrassBlade")
+surface_material_override/0 = SubResource("GrassMat")
+
+[node name="Blade3" type="MeshInstance3D" parent="Farm/Grass"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.02, 0.36, -0.18)
+mesh = SubResource("GrassBlade")
+surface_material_override/0 = SubResource("GrassMat")
+
+[node name="Blade4" type="MeshInstance3D" parent="Farm/Grass"]
+transform = Transform3D(0.86, 0, 0.51, 0, 1, 0, -0.51, 0, 0.86, 0.22, 0.24, -0.16)
+mesh = SubResource("GrassBlade")
+surface_material_override/0 = SubResource("GrassMat")
+
+[node name="Blade5" type="MeshInstance3D" parent="Farm/Grass"]
+transform = Transform3D(0.9, 0, -0.44, 0, 1, 0, 0.44, 0, 0.9, -0.22, 0.26, -0.12)
+mesh = SubResource("GrassBlade")
+surface_material_override/0 = SubResource("GrassMat")
+
+[node name="Drone" type="Node3D" parent="Farm"]
+transform = Transform3D(0.72, 0, 0, 0, 0.72, 0, 0, 0, 0.72, 0, 0.42, 0.42)
+
+[node name="Body" type="MeshInstance3D" parent="Farm/Drone"]
+mesh = SubResource("DroneBody")
+surface_material_override/0 = SubResource("DroneMat")
+
+[node name="Eye" type="MeshInstance3D" parent="Farm/Drone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0.18)
+mesh = SubResource("DroneEye")
+surface_material_override/0 = SubResource("EyeMat")
+
+[node name="ArmL" type="MeshInstance3D" parent="Farm/Drone"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -0.28, 0, 0)
+mesh = SubResource("DroneArm")
+surface_material_override/0 = SubResource("CopperMat")
+
+[node name="ArmR" type="MeshInstance3D" parent="Farm/Drone"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.28, 0, 0)
+mesh = SubResource("DroneArm")
+surface_material_override/0 = SubResource("CopperMat")
+
+[node name="Juice" type="Node3D" parent="Farm"]
+
+[node name="CodefarmHost" type="CodefarmHost" parent="."]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
