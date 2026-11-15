@@ -154,8 +154,8 @@ func run() -> void:
 		assert_eyes(extra_rig, extra_snapshots)
 		await process_frame
 	# Front camera targets the actual bot, not the origin of a later big field.
-	main.set("_shot_hide_plants", true)
-	main.call("_update_grass", 0.0)
+	main.field.set("hide_plants", true)
+	main.field.call("update", 0.0)
 	rig.rotation = Vector3.ZERO
 	main.camera.size = 1.0
 	main.camera.position = main.drone.global_position + Vector3(0, 0.02, 2)

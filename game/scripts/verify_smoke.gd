@@ -911,8 +911,8 @@ func _run() -> void:
 	var size_before := int(main.host.get_world_size())
 	if main.host.has_method("debug_grant"):
 		main.host.call("debug_grant", "expand")
-	if main.has_method("_ensure_farm_size"):
-		main.call("_ensure_farm_size", int(main.host.get_world_size()))
+	if main.field.has_method("ensure_size"):
+		main.field.call("ensure_size", int(main.host.get_world_size()))
 	for _i in 6:
 		await process_frame
 	var size_after := int(main.host.get_world_size())
@@ -1202,7 +1202,7 @@ int main() {
 		main.code_window.visible = false
 	if main.hint_window:
 		main.hint_window.visible = false
-	main.set("_shot_hide_plants", false)
+	main.field.set("hide_plants", false)
 	main.host.advance_seconds(0.75)
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
@@ -1287,15 +1287,15 @@ int main() {
 		main.code_window.visible = false
 	if main.hint_window:
 		main.hint_window.visible = false
-	main.set("_shot_hide_plants", false)
+	main.field.set("hide_plants", false)
 	if main.host.has_method("debug_grant"):
 		for sid in ["iff", "move", "till", "plant", "senses", "carrot", "expand"]:
 			main.host.call("debug_grant", sid)
 	if main.host.has_method("debug_add_item"):
 		main.host.call("debug_add_item", "hay", 40)
 		main.host.call("debug_add_item", "wood", 40)
-	if main.has_method("_ensure_farm_size"):
-		main.call("_ensure_farm_size", int(main.host.get_world_size()))
+	if main.field.has_method("ensure_size"):
+		main.field.call("ensure_size", int(main.host.get_world_size()))
 	if main.host.has_method("debug_grant"):
 		main.host.call("debug_grant", "forl")
 		main.host.call("debug_grant", "vars")
@@ -1338,11 +1338,11 @@ int main() {
 		_fail("胡萝卜演示田里没有胡萝卜")
 		return
 	var focus := Vector3.ZERO
-	if main.has_method("_tile_world"):
+	if main.field.has_method("tile_world"):
 		for y in wn:
 			for x in wn:
 				if str(main.host.tile_entity(x, y)) == "Carrot":
-					focus = main.call("_tile_world", x, y)
+					focus = main.field.call("tile_world", x, y)
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
 	main.camera_rig.set("target", focus)
@@ -1357,8 +1357,8 @@ int main() {
 		main.camera_rig.call("sync_pos_from_target")
 	if main.camera_rig.has_method("apply_transform"):
 		main.camera_rig.call("apply_transform")
-	if main.has_method("_update_grass"):
-		main.call("_update_grass", 0.05)
+	if main.field.has_method("update"):
+		main.field.call("update", 0.05)
 	for _i in 12:
 		await process_frame
 	img = vp.get_texture().get_image()
@@ -1395,8 +1395,8 @@ int main() {
 	if not bool(main.host.maze_active()):
 		_fail("迷宫演示后 maze_active 应为真，田里应有篱笆和宝藏")
 		return
-	if main.has_method("_update_grass"):
-		main.call("_update_grass", 0.05)
+	if main.field.has_method("update"):
+		main.field.call("update", 0.05)
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
 	main.camera_rig.set("pitch", 0.95)
@@ -1433,8 +1433,8 @@ int main() {
 		main.host.call("debug_grant", "mega")
 		main.host.call("debug_grant", "func")
 		main.host.call("debug_grant", "move")
-	if main.has_method("_ensure_farm_size"):
-		main.call("_ensure_farm_size", int(main.host.get_world_size()))
+	if main.field.has_method("ensure_size"):
+		main.field.call("ensure_size", int(main.host.get_world_size()))
 	main.editor.text = """#include <bits/stdc++.h>
 using namespace std;
 
