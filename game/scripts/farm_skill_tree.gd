@@ -170,13 +170,13 @@ func build(parent: Control) -> void:
 			else:
 				pa = a["pos"] + Vector2(node_w * 0.5, node_h - 2.0)
 				pb = b["pos"] + Vector2(node_w * 0.5, 2.0)
-			var col := Color(0.72, 0.70, 0.64, 0.18)
+			var col := Color(0.62, 0.58, 0.50, 0.30)
 			var width := 2.0
 			if a["owned"] and b["owned"]:
-				col = Color(0.80, 0.70, 0.50, 0.72)
+				col = Color(0.56, 0.72, 0.58, 0.95)
 				width = 2.6
 			elif a["owned"] and not b.get("soon", false):
-				col = Color(0.80, 0.70, 0.50, 0.34)
+				col = Color(0.56, 0.72, 0.58, 0.50)
 				width = 2.2
 			_draw_skill_branch(lines, pa, pb, col, width, detour)
 	)
@@ -201,15 +201,15 @@ func build(parent: Control) -> void:
 		if bar and bar.value < bar.max_value - scroll.size.y - 8:
 			var w := _more_hint.size.x
 			var h := _more_hint.size.y
-			_more_hint.draw_rect(Rect2(0, 0, w, h), Color(0.11, 0.14, 0.13, 0.0))
-			var fade := Color(0.11, 0.14, 0.13, 0.55)
+			_more_hint.draw_rect(Rect2(0, 0, w, h), Color(0.975, 0.957, 0.910, 0.0))
+			var fade := Color(0.975, 0.957, 0.910, 0.75)
 			for i in 10:
 				var a := 0.0 + 0.07 * float(i)
 				_more_hint.draw_rect(Rect2(0, h * float(i) / 10.0, w, h / 10.0 + 1), Color(fade.r, fade.g, fade.b, a))
 			var mid := Vector2(w * 0.5, h * 0.62)
 			_more_hint.draw_colored_polygon(PackedVector2Array([
 				mid + Vector2(-10, -4), mid + Vector2(10, -4), mid + Vector2(0, 6)
-			]), Color(0.86, 0.78, 0.58, 0.55))
+			]), Color(0.68, 0.49, 0.25, 0.60))
 	)
 	root.add_child(_more_hint)
 	var vbar := sc.get_v_scroll_bar()
@@ -302,17 +302,17 @@ func _node_card(node: Dictionary) -> Control:
 	var can_buy := false
 	if not soon and id != "harvest":
 		can_buy = bool(node.get("can_buy", false)) or (not owned and host.can_unlock(id))
-	var bg := Color(0.30, 0.27, 0.20, 0.95) if owned else Color(0.18, 0.19, 0.18, 0.90)
+	var bg := Color(0.99, 0.93, 0.76, 1) if owned else Color(0.93, 0.92, 0.87, 1)
 	if soon:
-		bg = Color(0.15, 0.16, 0.15, 0.72)
+		bg = Color(0.92, 0.91, 0.87, 0.6)
 	elif not owned:
-		bg = Color(0.16, 0.17, 0.16, 0.88)
-	var style := ui.flat(bg, 12, Vector4(6, 5, 6, 4), 2)
+		bg = Color(0.945, 0.935, 0.895, 1)
+	var style := ui.flat(bg, 16, Vector4(6, 5, 6, 4), 4)
 	if can_buy:
-		style.border_color = Color(0.65, 0.81, 0.64, 0.90)
+		style.border_color = Color(0.50, 0.70, 0.54, 1)
 		style.set_border_width_all(2)
 	elif owned:
-		style.border_color = Color(0.80, 0.70, 0.50, 0.30)
+		style.border_color = Color(0.90, 0.76, 0.48, 0.9)
 		style.set_border_width_all(1)
 	card.add_theme_stylebox_override("panel", style)
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -333,10 +333,10 @@ func _node_card(node: Dictionary) -> Control:
 	var icon := FarmIcon.new()
 	if soon:
 		icon.kind = FarmIcon.Kind.LOCK
-		icon.icon_color = Color(0.62, 0.62, 0.58, 0.45)
+		icon.icon_color = Color(0.60, 0.58, 0.52, 0.5)
 	else:
 		icon.kind = FarmIcon.kind_from_name(id)
-		icon.icon_color = FarmPalette.GOLD_SOFT if owned else Color(0.62, 0.62, 0.58, 0.70)
+		icon.icon_color = FarmPalette.ACCENT_SOFT if owned else Color(0.56, 0.56, 0.50, 0.85)
 	icon.custom_minimum_size = Vector2(26, 26)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.add_child(icon)
@@ -345,7 +345,7 @@ func _node_card(node: Dictionary) -> Control:
 	title.text = str(node["name"])
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ui.apply_font(title, 18, Color(0.84, 0.76, 0.58, 1) if owned else Color(0.74, 0.73, 0.68, 0.78 if not soon else 0.42), false)
+	ui.apply_font(title, 18, FarmPalette.INK if owned else Color(0.40, 0.38, 0.34, 0.90 if not soon else 0.45), false)
 	col.add_child(title)
 	var purpose := Label.new()
 	purpose.name = "SkillPurpose"
@@ -368,7 +368,7 @@ func _node_card(node: Dictionary) -> Control:
 		cost.max_lines_visible = 2
 		cost.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cost.tooltip_text = price_text
-		ui.apply_font(cost, 12, FarmPalette.GOLD if can_buy else Color(0.70, 0.68, 0.62, 0.80), false)
+		ui.apply_font(cost, 12, FarmPalette.ACCENT_SOFT if can_buy else Color(0.56, 0.53, 0.47, 0.9), false)
 		cost.add_theme_constant_override("line_spacing", -4)
 		col.add_child(cost)
 
@@ -507,7 +507,7 @@ func _make_detail() -> PanelContainer:
 	panel.offset_right = 250
 	panel.offset_top = -210
 	panel.offset_bottom = 210
-	panel.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_DEEP, 16, Vector4(18, 16, 18, 16), 12))
+	panel.add_theme_stylebox_override("panel", ui.flat(FarmPalette.PANEL_DEEP, 20, Vector4(18, 16, 18, 16), 18))
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
@@ -517,7 +517,7 @@ func _make_detail() -> PanelContainer:
 	var title := Label.new()
 	title.name = "DetailTitle"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ui.apply_font(title, 22, FarmPalette.GOLD_SOFT, true)
+	ui.apply_font(title, 22, FarmPalette.ACCENT_SOFT, true)
 	head.add_child(title)
 	var close := ui.make_icon_button(FarmIcon.Kind.CLOSE, "关闭", false, Vector2(44, 44))
 	close.pressed.connect(func() -> void:
@@ -532,7 +532,7 @@ func _make_detail() -> PanelContainer:
 	var ex_title := Label.new()
 	ex_title.name = "DetailExemplarTitle"
 	ex_title.text = "范本"
-	ui.apply_font(ex_title, 18, FarmPalette.GOLD_SOFT, true)
+	ui.apply_font(ex_title, 18, FarmPalette.ACCENT_SOFT, true)
 	v.add_child(ex_title)
 	var code := CodeEdit.new()
 	code.name = "DetailCode"
@@ -546,7 +546,7 @@ func _make_detail() -> PanelContainer:
 	code.add_theme_font_size_override("font_size", 16)
 	code.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
 	code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
-	var ed := ui.flat(Color(0.10, 0.12, 0.11, 1), 10, Vector4(10, 8, 10, 8))
+	var ed := ui.flat(FarmPalette.EDITOR_BG, 12, Vector4(10, 8, 10, 8))
 	code.add_theme_stylebox_override("normal", ed)
 	code.add_theme_stylebox_override("read_only", ed)
 	code.add_theme_stylebox_override("focus", ed)
@@ -568,7 +568,7 @@ func _make_detail() -> PanelContainer:
 	copied.name = "CopiedHint"
 	copied.text = "已复制"
 	copied.visible = false
-	ui.apply_font(copied, 17, FarmPalette.GOLD_SOFT)
+	ui.apply_font(copied, 17, FarmPalette.ACCENT_SOFT)
 	actions.add_child(copied)
 	return panel
 
@@ -579,7 +579,7 @@ func _mark_selection(id: String) -> void:
 	for card in scroll.find_children("Skill_*", "PanelContainer", true, false):
 		if card.has_meta("skill_id"):
 			var style: StyleBoxFlat = card.get_theme_stylebox("panel")
-			style.border_color = FarmPalette.GOLD_SOFT if str(card.get_meta("skill_id")) == id else card.get_meta("base_border")
+			style.border_color = FarmPalette.ACCENT_SOFT if str(card.get_meta("skill_id")) == id else card.get_meta("base_border")
 
 
 func open_detail(id: String) -> void:

@@ -114,7 +114,7 @@ func rebuild_bar() -> void:
 		btn.flat = true
 		btn.set_meta("file_name", str(name))
 		btn.custom_minimum_size = Vector2(72, 28)
-		ui.apply_font(btn, 15, FarmPalette.GOLD_SOFT if active_file == str(name) else FarmPalette.TEXT_DIM, true)
+		ui.apply_font(btn, 15, FarmPalette.ACCENT_SOFT if active_file == str(name) else FarmPalette.TEXT_DIM, true)
 		var chosen := str(name)
 		btn.pressed.connect(func() -> void:
 			switch_to(chosen)
@@ -125,7 +125,7 @@ func rebuild_bar() -> void:
 	add.text = "+"
 	add.tooltip_text = "新建文件"
 	add.custom_minimum_size = Vector2(32, 28)
-	ui.apply_font(add, 18, FarmPalette.GOLD_SOFT, true)
+	ui.apply_font(add, 18, FarmPalette.ACCENT_SOFT, true)
 	add.pressed.connect(new_file)
 	file_bar.add_child(add)
 
@@ -145,7 +145,7 @@ func switch_to(name: String) -> void:
 		for button in file_bar.get_children():
 			if button is Button and button.has_meta("file_name"):
 				var is_active: bool = str(button.get_meta("file_name")) == name
-				button.add_theme_color_override("font_color", FarmPalette.GOLD_SOFT if is_active else FarmPalette.TEXT_DIM)
+				button.add_theme_color_override("font_color", FarmPalette.ACCENT_SOFT if is_active else FarmPalette.TEXT_DIM)
 	if editor:
 		FarmMotion.stop(editor, "_file_fade")
 		editor.modulate.a = 0.65

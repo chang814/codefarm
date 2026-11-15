@@ -346,7 +346,7 @@ func _completion_items() -> Array:
 		items.append(["move(North)    向北走一格", "move(North)", kind_fn, fn])
 		items.append(["move(South)    向南走一格", "move(South)", kind_fn, fn])
 		for d in ["East", "West", "North", "South"]:
-			items.append([d + "    方向", d, kind_const, FarmPalette.GOLD_SOFT])
+			items.append([d + "    方向", d, kind_const, FarmPalette.ACCENT_SOFT])
 	if host.for_unlocked():
 		items.append(["for (int i = 0; i < 3; i++)    计数循环，走过一垄", "for (int i = 0; i < 3; i++) {\n        \n    }", kind_kw, sn])
 	if host.till_unlocked():
@@ -356,7 +356,7 @@ func _completion_items() -> Array:
 		items.append(["get_entity_type()    脚下的作物", "get_entity_type()", kind_fn, fn])
 		items.append(["get_ground_type()    脚下的地面", "get_ground_type()", kind_fn, fn])
 		for d in ["Bush", "Grass", "None", "Soil", "Grassland"]:
-			items.append([d + "    实体或地面", d, kind_const, FarmPalette.GOLD_SOFT])
+			items.append([d + "    实体或地面", d, kind_const, FarmPalette.ACCENT_SOFT])
 	items.append(["int    整数类型 / 入口返回值", "int", kind_kw, kw])
 	items.append(["return    结束 main", "return", kind_kw, kw])
 	items.append(["using    例如 using namespace std;", "using", kind_kw, kw])

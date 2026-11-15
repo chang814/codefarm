@@ -10,10 +10,10 @@ var action: Action = Action.MINIMIZE:
 		action = value
 		queue_redraw()
 
-const CREAM := Color(0.88, 0.84, 0.76, 0.95)
-const BOX := Color(0.38, 0.42, 0.38, 0.62)
-const BOX_HOVER := Color(0.48, 0.52, 0.47, 0.82)
-const CLOSE_HOVER := Color(0.82, 0.48, 0.44, 0.90)
+const CREAM := Color(0.44, 0.42, 0.37, 0.95)
+const BOX := Color(0.90, 0.88, 0.81, 0.95)
+const BOX_HOVER := Color(0.84, 0.83, 0.75, 1)
+const CLOSE_HOVER := Color(0.95, 0.66, 0.60, 1)
 const RADIUS := 8.0
 
 

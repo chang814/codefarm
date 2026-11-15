@@ -18,7 +18,7 @@ var kind: Kind = Kind.PLAY:
 		kind = value
 		queue_redraw()
 
-var icon_color := Color(0.88, 0.84, 0.76, 1):
+var icon_color := Color(0.33, 0.46, 0.38, 1):
 	set(value):
 		icon_color = value
 		queue_redraw()
@@ -377,61 +377,6 @@ static func _play_outline(ci: CanvasItem, rect: Rect2, color: Color, width: floa
 	_rounded_triangle(ci, p[0], p[1], p[2], color, corner, false, width)
 
 
-static func _code(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var w := width * 1.05
-	_poly(ci, PackedVector2Array([
-		rect.position + Vector2(rect.size.x * 0.40, rect.size.y * 0.18),
-		rect.position + Vector2(rect.size.x * 0.18, rect.size.y * 0.50),
-		rect.position + Vector2(rect.size.x * 0.40, rect.size.y * 0.82),
-	]), color, w, false)
-	_poly(ci, PackedVector2Array([
-		rect.position + Vector2(rect.size.x * 0.68, rect.size.y * 0.18),
-		rect.position + Vector2(rect.size.x * 0.90, rect.size.y * 0.50),
-		rect.position + Vector2(rect.size.x * 0.68, rect.size.y * 0.82),
-	]), color, w, false)
-	_line(ci, rect.position + Vector2(rect.size.x * 0.58, rect.size.y * 0.22), rect.position + Vector2(rect.size.x * 0.46, rect.size.y * 0.78), color, w)
-
-
-static func _skill_tree(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var top := rect.position + rect.size * Vector2(0.5, 0.22)
-	var left := rect.position + rect.size * Vector2(0.23, 0.76)
-	var right := rect.position + rect.size * Vector2(0.77, 0.76)
-	var junction := rect.position + rect.size * Vector2(0.5, 0.52)
-	_line(ci, top, junction, _soft(color, 0.75), width * 0.8)
-	_poly(ci, PackedVector2Array([left, Vector2(left.x, junction.y), Vector2(right.x, junction.y), right]), _soft(color, 0.75), width * 0.8, false)
-	var edge := rect.size.x * 0.25
-	for center in [top, left, right]:
-		_rounded_rect(ci, Rect2(center - Vector2.ONE * edge * 0.5, Vector2.ONE * edge), color, width, true, edge * 0.25)
-
-
-static func _bulb(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var c := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.40)
-	var r := minf(rect.size.x, rect.size.y) * 0.30
-	_disc(ci, c, r, _soft(color, 0.40))
-	_arc(ci, c, r, deg_to_rad(50), deg_to_rad(310), color, width, 22)
-	var neck0 := c + Vector2(-r * 0.38, r * 0.72)
-	var neck1 := c + Vector2(r * 0.38, r * 0.72)
-	var base0 := rect.position + Vector2(rect.size.x * 0.36, rect.size.y * 0.74)
-	var base1 := rect.position + Vector2(rect.size.x * 0.64, rect.size.y * 0.74)
-	_line(ci, neck0, base0, color, width)
-	_line(ci, neck1, base1, color, width)
-	_line(ci, base0, base1, color, width)
-	_line(ci, base0 + Vector2(0, rect.size.y * 0.09), base1 + Vector2(0, rect.size.y * 0.09), color, width * 1.05)
-
-
-static func _sliders(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	# Two well-spaced fat sliders stay readable at 24px.
-	var rows: PackedFloat32Array = PackedFloat32Array([0.34, 0.66])
-	var knobs: PackedFloat32Array = PackedFloat32Array([0.64, 0.38])
-	for i in 2:
-		var y := rect.position.y + rect.size.y * rows[i]
-		var x0 := rect.position.x + rect.size.x * 0.16
-		var x1 := rect.position.x + rect.size.x * 0.84
-		_line(ci, Vector2(x0, y), Vector2(x1, y), color, width)
-		var kx := rect.position.x + rect.size.x * knobs[i]
-		_rounded_rect(ci, Rect2(Vector2(kx - width, y - width * 1.3), Vector2(width * 2, width * 2.6)), color, width, true, width * 0.65)
-
-
 static func _document(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
 	var r := Rect2(rect.position + Vector2(rect.size.x * 0.20, rect.size.y * 0.12), Vector2(rect.size.x * 0.60, rect.size.y * 0.76))
 	_rounded_rect(ci, r, _soft(color, 0.32), width, true, 4.0)
@@ -440,32 +385,6 @@ static func _document(ci: CanvasItem, rect: Rect2, color: Color, width: float) -
 		var y := r.position.y + r.size.y * (0.32 + 0.20 * float(i))
 		var x1 := r.position.x + r.size.x * (0.76 if i < 2 else 0.58)
 		_line(ci, Vector2(r.position.x + r.size.x * 0.20, y), Vector2(x1, y), color, width * 0.95)
-
-
-static func _hay(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var base := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.88)
-	var tips := PackedVector2Array([
-		base + Vector2(-rect.size.x * 0.22, -rect.size.y * 0.68),
-		base + Vector2(0.0, -rect.size.y * 0.76),
-		base + Vector2(rect.size.x * 0.22, -rect.size.y * 0.66),
-	])
-	for tip in tips:
-		_line(ci, base, tip, color, width * 1.08)
-		_disc(ci, tip, width * 1.35, color)
-	var tie_a := base + Vector2(-rect.size.x * 0.13, -rect.size.y * 0.32)
-	var tie_b := base + Vector2(rect.size.x * 0.13, -rect.size.y * 0.26)
-	_line(ci, tie_a, tie_b, color, width * 1.15)
-
-
-static func _wood(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var c := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.52)
-	var rx := rect.size.x * 0.34
-	var a := c + Vector2(-rx, rx * 0.28)
-	var b := c + Vector2(rx, -rx * 0.28)
-	_line(ci, a, b, color, width * 3.2)
-	_disc(ci, a, width * 1.7, color)
-	_disc(ci, b, width * 1.5, color)
-	ci.draw_arc(a, width * 1.85, 0.0, TAU, 18, _soft(color, 0.7), width * 0.7, true)
 
 
 static func _reset_cam(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
@@ -656,127 +575,29 @@ static func kind_from_item(name: String) -> Kind:
 static func item_color(name: String, fallback: Color) -> Color:
 	match name:
 		"hay":
-			return Color(0.86, 0.74, 0.38, 1)
+			return Color(0.90, 0.76, 0.42, 1)
 		"wood":
-			return Color(0.72, 0.50, 0.32, 1)
+			return Color(0.72, 0.56, 0.42, 1)
 		"carrot":
-			return Color(0.92, 0.50, 0.22, 1)
+			return Color(0.93, 0.62, 0.38, 1)
 		"pumpkin":
-			return Color(0.90, 0.48, 0.16, 1)
+			return Color(0.92, 0.64, 0.36, 1)
 		"power":
-			return Color(0.92, 0.78, 0.28, 1)
+			return Color(0.95, 0.80, 0.42, 1)
 		"water", "water_tank":
-			return Color(0.42, 0.70, 0.86, 1)
+			return Color(0.50, 0.74, 0.88, 1)
 		"fertilizer", "fert":
-			return Color(0.70, 0.62, 0.36, 1)
+			return Color(0.74, 0.66, 0.50, 1)
 		"weird":
-			return Color(0.66, 0.46, 0.82, 1)
+			return Color(0.72, 0.60, 0.84, 1)
 		"gold":
-			return Color(0.92, 0.78, 0.28, 1)
+			return Color(0.95, 0.80, 0.42, 1)
 		"cactus":
-			return Color(0.40, 0.70, 0.40, 1)
+			return Color(0.50, 0.72, 0.56, 1)
 		"bone":
-			return Color(0.90, 0.86, 0.78, 1)
+			return Color(0.80, 0.75, 0.66, 1)
 		_:
 			return fallback
-
-
-static func _carrot(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var p := rect.position
-	var s := rect.size
-	var body := PackedVector2Array([
-		p + Vector2(s.x * 0.50, s.y * 0.92),
-		p + Vector2(s.x * 0.30, s.y * 0.40),
-		p + Vector2(s.x * 0.70, s.y * 0.40),
-	])
-	ci.draw_colored_polygon(body, _soft(color, 0.55))
-	_poly(ci, body, color, width, true)
-	var top := p + Vector2(s.x * 0.50, s.y * 0.38)
-	_line(ci, top, top + Vector2(-s.x * 0.20, -s.y * 0.22), Color(0.36, 0.62, 0.32, 1), width)
-	_line(ci, top, top + Vector2(0, -s.y * 0.26), Color(0.36, 0.62, 0.32, 1), width)
-	_line(ci, top, top + Vector2(s.x * 0.20, -s.y * 0.22), Color(0.36, 0.62, 0.32, 1), width)
-
-
-static func _pumpkin(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var c := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.58)
-	var rx := rect.size.x * 0.32
-	var ry := rect.size.y * 0.26
-	var fill := PackedVector2Array()
-	for i in 16:
-		var a := TAU * float(i) / 16.0
-		fill.append(c + Vector2(cos(a) * rx, sin(a) * ry))
-	ci.draw_colored_polygon(fill, _soft(color, 0.55))
-	_poly(ci, fill, color, width, true)
-	_arc(ci, c, rx * 0.45, deg_to_rad(70), deg_to_rad(110), color, width * 0.8, 8)
-	_line(ci, c + Vector2(0, -ry), c + Vector2(0, -ry - rect.size.y * 0.14), Color(0.36, 0.56, 0.30, 1), width)
-
-
-static func _power(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	_speed(ci, rect, color, width)
-
-
-static func _water(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var c := rect.position + Vector2(rect.size.x * 0.50, rect.size.y * 0.42)
-	var drop := PackedVector2Array([
-		c + Vector2(0, -rect.size.y * 0.28),
-		c + Vector2(rect.size.x * 0.28, rect.size.y * 0.10),
-		c + Vector2(0, rect.size.y * 0.32),
-		c + Vector2(-rect.size.x * 0.28, rect.size.y * 0.10),
-	])
-	ci.draw_colored_polygon(drop, _soft(color, 0.50))
-	_poly(ci, drop, color, width, true)
-
-
-static func _fert(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var bag := Rect2(rect.position + Vector2(rect.size.x * 0.22, rect.size.y * 0.28), Vector2(rect.size.x * 0.56, rect.size.y * 0.56))
-	_rounded_rect(ci, bag, _soft(color, 0.45), width, true, 4.0)
-	_rounded_rect(ci, bag, color, width, false, 4.0)
-	_line(ci, bag.position + Vector2(bag.size.x * 0.20, bag.size.y * 0.45), bag.position + Vector2(bag.size.x * 0.80, bag.size.y * 0.45), color, width)
-
-
-static func _weird(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var c := rect.get_center()
-	var s := minf(rect.size.x, rect.size.y)
-	var pts := PackedVector2Array()
-	for i in 8:
-		var a := TAU * float(i) / 8.0 - PI / 2.0
-		var r := s * (0.38 if i % 2 == 0 else 0.18)
-		pts.append(c + Vector2(cos(a), sin(a)) * r)
-	ci.draw_colored_polygon(pts, _soft(color, 0.45))
-	_poly(ci, pts, color, width, true)
-
-
-static func _gold(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var c := rect.get_center()
-	var s := minf(rect.size.x, rect.size.y)
-	var pts := PackedVector2Array()
-	for i in 5:
-		var a := TAU * float(i) / 5.0 - PI / 2.0
-		pts.append(c + Vector2(cos(a), sin(a)) * s * 0.40)
-		var b := a + TAU / 10.0
-		pts.append(c + Vector2(cos(b), sin(b)) * s * 0.18)
-	ci.draw_colored_polygon(pts, _soft(color, 0.55))
-	_poly(ci, pts, color, width, true)
-
-
-static func _cactus(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var p := rect.position
-	var s := rect.size
-	_line(ci, p + Vector2(s.x * 0.50, s.y * 0.86), p + Vector2(s.x * 0.50, s.y * 0.18), color, width * 1.35)
-	_line(ci, p + Vector2(s.x * 0.50, s.y * 0.48), p + Vector2(s.x * 0.22, s.y * 0.48), color, width * 1.15)
-	_line(ci, p + Vector2(s.x * 0.22, s.y * 0.48), p + Vector2(s.x * 0.22, s.y * 0.30), color, width * 1.15)
-	_line(ci, p + Vector2(s.x * 0.50, s.y * 0.58), p + Vector2(s.x * 0.76, s.y * 0.58), color, width * 1.15)
-	_line(ci, p + Vector2(s.x * 0.76, s.y * 0.58), p + Vector2(s.x * 0.76, s.y * 0.36), color, width * 1.15)
-
-
-static func _bone(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
-	var a := rect.position + Vector2(rect.size.x * 0.22, rect.size.y * 0.62)
-	var b := rect.position + Vector2(rect.size.x * 0.78, rect.size.y * 0.38)
-	_line(ci, a, b, color, width * 1.15)
-	_disc(ci, a + Vector2(-4, -3), width * 0.95, color)
-	_disc(ci, a + Vector2(-2, 5), width * 0.95, color)
-	_disc(ci, b + Vector2(4, -4), width * 0.95, color)
-	_disc(ci, b + Vector2(3, 4), width * 0.95, color)
 
 
 static func _at(rect: Rect2, x: float, y: float) -> Vector2:
@@ -906,3 +727,251 @@ static func _glyph(ci: CanvasItem, name: String, rect: Rect2, color: Color, w: f
 				_line(ci, _at(rect, 0.5, 0.5) + dir * s * 0.27, _at(rect, 0.5, 0.5) + dir * s * 0.40, color, w)
 		_:
 			_check(ci, rect, color, w)
+
+
+# --- Soft filled icon parts ---------------------------------------------------
+
+const _ICON_LEAF := Color(0.47, 0.66, 0.50, 1)
+
+
+static func _oval(ci: CanvasItem, c: Vector2, rx: float, ry: float, color: Color, rot := 0.0) -> void:
+	var pts := PackedVector2Array()
+	for i in 24:
+		var a := TAU * float(i) / 24.0
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry).rotated(rot))
+	ci.draw_colored_polygon(pts, color)
+
+
+## A pointed leaf from `base` to `tip`, `fat` wide at its belly.
+static func _leaf_shape(ci: CanvasItem, base: Vector2, tip: Vector2, fat: float, color: Color) -> void:
+	var along := tip - base
+	var side := Vector2(-along.y, along.x).normalized() * fat
+	var pts := PackedVector2Array()
+	for i in 9:
+		var t := float(i) / 8.0
+		pts.append(base + along * t + side * sin(PI * pow(t, 0.8)))
+	for i in 9:
+		var t := 1.0 - float(i) / 8.0
+		pts.append(base + along * t - side * sin(PI * pow(t, 0.8)))
+	ci.draw_colored_polygon(pts, color)
+
+
+static func _shade(color: Color) -> Color:
+	return color.darkened(0.22)
+
+
+static func _shine(color: Color) -> Color:
+	return color.lightened(0.34)
+
+
+static func _code(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# A small rounded code sheet with two soft chevrons.
+	var p := rect.position
+	var s := rect.size
+	_rounded_rect(ci, Rect2(p + s * Vector2(0.06, 0.14), s * Vector2(0.88, 0.72)), _soft(color, 0.20), width, true, s.x * 0.20)
+	var w := width * 1.0
+	_poly(ci, PackedVector2Array([p + s * Vector2(0.38, 0.32), p + s * Vector2(0.22, 0.50), p + s * Vector2(0.38, 0.68)]), color, w, false)
+	_poly(ci, PackedVector2Array([p + s * Vector2(0.62, 0.32), p + s * Vector2(0.78, 0.50), p + s * Vector2(0.62, 0.68)]), color, w, false)
+
+
+static func _skill_tree(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# A sapling: a stem that branches into three round leaves.
+	var p := rect.position
+	var s := rect.size
+	var root := p + s * Vector2(0.50, 0.92)
+	var fork := p + s * Vector2(0.50, 0.56)
+	_line(ci, root, fork, color, width)
+	var buds := [p + s * Vector2(0.50, 0.24), p + s * Vector2(0.20, 0.44), p + s * Vector2(0.80, 0.44)]
+	for bud in buds:
+		_line(ci, fork, bud, _soft(color, 0.8), width * 0.85)
+	var r := s.x * 0.155
+	for i in 3:
+		_disc(ci, buds[i], r * (1.15 if i == 0 else 1.0), color)
+		_disc(ci, buds[i] + Vector2(-r * 0.28, -r * 0.30), r * 0.34, _shine(color))
+
+
+static func _bulb(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var p := rect.position
+	var s := rect.size
+	var c := p + s * Vector2(0.50, 0.42)
+	var r := minf(s.x, s.y) * 0.27
+	_disc(ci, c, r, _soft(color, 0.30))
+	_arc(ci, c, r, deg_to_rad(55), deg_to_rad(305), color, width, 22)
+	_line(ci, c + Vector2(-r * 0.42, r * 0.92), c + Vector2(r * 0.42, r * 0.92), color, width)
+	_line(ci, c + Vector2(-r * 0.26, r * 1.42), c + Vector2(r * 0.26, r * 1.42), color, width)
+	# A small sparkle: the idea arriving.
+	for ray in [Vector2(0, -1), Vector2(-0.80, -0.62), Vector2(0.80, -0.62)]:
+		_line(ci, c + ray * r * 1.42, c + ray * r * 1.70, _soft(color, 0.75), width * 0.8)
+
+
+static func _sliders(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# Two soft tracks with round knobs.
+	var rows: PackedFloat32Array = PackedFloat32Array([0.34, 0.68])
+	var knobs: PackedFloat32Array = PackedFloat32Array([0.66, 0.36])
+	for i in 2:
+		var y := rect.position.y + rect.size.y * rows[i]
+		var x0 := rect.position.x + rect.size.x * 0.14
+		var x1 := rect.position.x + rect.size.x * 0.86
+		_line(ci, Vector2(x0, y), Vector2(x1, y), _soft(color, 0.45), width)
+		var knob := Vector2(rect.position.x + rect.size.x * knobs[i], y)
+		_line(ci, Vector2(x0, y), knob, color, width)
+		_disc(ci, knob, width * 1.55, color)
+		_disc(ci, knob, width * 0.62, _shine(color))
+
+
+static func _hay(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# A tied sheaf: three plump golden ears over a short stalk bundle.
+	var p := rect.position
+	var s := rect.size
+	var knot := p + s * Vector2(0.50, 0.62)
+	for foot in [Vector2(0.30, 0.94), Vector2(0.50, 0.97), Vector2(0.70, 0.94)]:
+		_line(ci, knot, p + s * foot, _shade(color), width * 1.1)
+	var ears := [[Vector2(0.24, 0.20), -0.42], [Vector2(0.50, 0.10), 0.0], [Vector2(0.76, 0.20), 0.42]]
+	for ear in ears:
+		var tip: Vector2 = p + s * (ear[0] as Vector2)
+		_line(ci, knot, tip, _shade(color), width * 0.9)
+		_oval(ci, knot.lerp(tip, 0.72), s.x * 0.115, s.y * 0.215, color, float(ear[1]))
+		_oval(ci, knot.lerp(tip, 0.78) + Vector2(-s.x * 0.03, 0), s.x * 0.04, s.y * 0.10, _shine(color), float(ear[1]))
+	_line(ci, knot + Vector2(-s.x * 0.15, 0), knot + Vector2(s.x * 0.15, 0), Color(0.86, 0.52, 0.42, 1), width * 1.25)
+
+
+static func _wood(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# A short log lying at an angle, cut end facing us.
+	var p := rect.position
+	var s := rect.size
+	var a := p + s * Vector2(0.26, 0.66)
+	var b := p + s * Vector2(0.74, 0.38)
+	_line(ci, a, b, _shade(color), s.y * 0.40)
+	_line(ci, a + Vector2(0, -s.y * 0.07), b + Vector2(0, -s.y * 0.07), color, s.y * 0.16)
+	_oval(ci, b, s.x * 0.15, s.y * 0.20, _shine(color), -0.5)
+	_oval(ci, b, s.x * 0.075, s.y * 0.10, color, -0.5)
+	_leaf_shape(ci, a.lerp(b, 0.35) + Vector2(0, -s.y * 0.18), a.lerp(b, 0.35) + Vector2(-s.x * 0.14, -s.y * 0.40), s.x * 0.07, _ICON_LEAF)
+
+
+static func _carrot(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var p := rect.position
+	var s := rect.size
+	var top := p + s * Vector2(0.50, 0.40)
+	for leaf in [Vector2(-0.24, -0.30), Vector2(0.0, -0.38), Vector2(0.24, -0.30)]:
+		_leaf_shape(ci, top, top + s * leaf, s.x * 0.085, _ICON_LEAF if leaf.x != 0.0 else _ICON_LEAF.lightened(0.18))
+	var body := PackedVector2Array()
+	for i in 13:
+		var t := float(i) / 12.0
+		var a := PI + PI * t
+		body.append(top + Vector2(cos(a) * s.x * 0.24, sin(a) * s.y * 0.13))
+	body.append(p + s * Vector2(0.58, 0.80))
+	body.append(p + s * Vector2(0.50, 0.96))
+	body.append(p + s * Vector2(0.42, 0.80))
+	ci.draw_colored_polygon(body, color)
+	_line(ci, p + s * Vector2(0.40, 0.46), p + s * Vector2(0.44, 0.66), _shine(color), width * 0.8)
+	for y in [0.56, 0.72]:
+		_line(ci, p + s * Vector2(0.52, y), p + s * Vector2(0.62, y - 0.02), _shade(color), width * 0.55)
+
+
+static func _pumpkin(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var p := rect.position
+	var s := rect.size
+	var c := p + s * Vector2(0.50, 0.60)
+	_oval(ci, c + Vector2(-s.x * 0.19, 0), s.x * 0.20, s.y * 0.27, _shade(color))
+	_oval(ci, c + Vector2(s.x * 0.19, 0), s.x * 0.20, s.y * 0.27, _shade(color))
+	_oval(ci, c, s.x * 0.21, s.y * 0.30, color)
+	_oval(ci, c + Vector2(-s.x * 0.06, -s.y * 0.08), s.x * 0.05, s.y * 0.11, _shine(color))
+	_line(ci, c + Vector2(0, -s.y * 0.28), c + Vector2(s.x * 0.06, -s.y * 0.44), _ICON_LEAF.darkened(0.12), width * 1.2)
+	_leaf_shape(ci, c + Vector2(s.x * 0.05, -s.y * 0.34), c + Vector2(s.x * 0.34, -s.y * 0.40), s.x * 0.08, _ICON_LEAF)
+
+
+static func _power(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# Sun energy: a warm disc with soft rays and a small spark.
+	var p := rect.position
+	var s := rect.size
+	var c := p + s * Vector2(0.50, 0.50)
+	var r := s.x * 0.22
+	for i in 8:
+		var d := Vector2.from_angle(TAU * float(i) / 8.0)
+		_line(ci, c + d * r * 1.42, c + d * r * 1.90, _shade(color), width * 0.95)
+	_disc(ci, c, r * 1.08, _shade(color))
+	_disc(ci, c, r * 0.92, color)
+	_disc(ci, c + Vector2(-r * 0.30, -r * 0.30), r * 0.30, _shine(color))
+
+
+static func _water(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var p := rect.position
+	var s := rect.size
+	var c := p + s * Vector2(0.50, 0.62)
+	var r := s.x * 0.27
+	var drop := PackedVector2Array([p + s * Vector2(0.50, 0.08)])
+	for i in 17:
+		var a := -PI * 0.18 + (PI * 1.36) * float(i) / 16.0
+		drop.append(c + Vector2(cos(a), sin(a)) * r)
+	ci.draw_colored_polygon(drop, color)
+	_arc(ci, c, r * 0.58, PI * 0.55, PI * 0.95, _shine(color), width * 0.8, 8)
+
+
+static func _fert(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# A tied sack with a sprout mark.
+	var p := rect.position
+	var s := rect.size
+	_rounded_rect(ci, Rect2(p + s * Vector2(0.20, 0.34), s * Vector2(0.60, 0.58)), color, width, true, s.x * 0.18)
+	_oval(ci, p + s * Vector2(0.50, 0.26), s.x * 0.20, s.y * 0.10, _shade(color))
+	_line(ci, p + s * Vector2(0.34, 0.36), p + s * Vector2(0.66, 0.36), Color(0.86, 0.52, 0.42, 1), width)
+	var mark := p + s * Vector2(0.50, 0.78)
+	_line(ci, mark, mark + Vector2(0, -s.y * 0.16), _ICON_LEAF.darkened(0.1), width * 0.7)
+	_leaf_shape(ci, mark + Vector2(0, -s.y * 0.14), mark + Vector2(-s.x * 0.16, -s.y * 0.26), s.x * 0.05, _ICON_LEAF)
+	_leaf_shape(ci, mark + Vector2(0, -s.y * 0.14), mark + Vector2(s.x * 0.16, -s.y * 0.26), s.x * 0.05, _ICON_LEAF.lightened(0.15))
+
+
+static func _weird(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	# A wobbly blob with bubbles.
+	var p := rect.position
+	var s := rect.size
+	var c := p + s * Vector2(0.50, 0.58)
+	var blob := PackedVector2Array()
+	for i in 28:
+		var a := TAU * float(i) / 28.0
+		var r := s.x * (0.30 + 0.035 * sin(a * 3.0 + 0.6) + 0.02 * cos(a * 5.0))
+		blob.append(c + Vector2(cos(a) * r, sin(a) * r * 0.86))
+	ci.draw_colored_polygon(blob, color)
+	_disc(ci, c + Vector2(-s.x * 0.10, -s.y * 0.07), s.x * 0.07, _shine(color))
+	_disc(ci, c + Vector2(s.x * 0.10, s.y * 0.05), s.x * 0.045, _shade(color))
+	_disc(ci, p + s * Vector2(0.70, 0.18), s.x * 0.06, _soft(color, 0.8))
+	_disc(ci, p + s * Vector2(0.56, 0.08), s.x * 0.035, _soft(color, 0.6))
+
+
+static func _gold(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var c := rect.get_center()
+	var r := rect.size.x * 0.36
+	_disc(ci, c + Vector2(0, r * 0.10), r, _shade(color))
+	_disc(ci, c, r, color)
+	_arc(ci, c, r * 0.64, 0.0, TAU, _shade(color), width * 0.6, 24)
+	_arc(ci, c, r * 0.82, PI * 1.08, PI * 1.42, _shine(color), width * 0.8, 8)
+	_disc(ci, c, r * 0.16, _shade(color))
+
+
+static func _cactus(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var p := rect.position
+	var s := rect.size
+	_line(ci, p + s * Vector2(0.50, 0.90), p + s * Vector2(0.50, 0.26), color, s.x * 0.24)
+	_poly(ci, PackedVector2Array([p + s * Vector2(0.50, 0.62), p + s * Vector2(0.22, 0.62), p + s * Vector2(0.22, 0.42)]), color, s.x * 0.13, false)
+	_poly(ci, PackedVector2Array([p + s * Vector2(0.50, 0.52), p + s * Vector2(0.78, 0.52), p + s * Vector2(0.78, 0.34)]), color, s.x * 0.13, false)
+	_line(ci, p + s * Vector2(0.45, 0.80), p + s * Vector2(0.45, 0.32), _shine(color), width * 0.55)
+	for i in 5:
+		var a := TAU * float(i) / 5.0
+		_disc(ci, p + s * Vector2(0.50, 0.14) + Vector2(cos(a), sin(a)) * s.x * 0.065, s.x * 0.055, Color(0.95, 0.74, 0.76, 1))
+	_disc(ci, p + s * Vector2(0.50, 0.14), s.x * 0.04, Color(0.97, 0.85, 0.52, 1))
+
+
+static func _bone(ci: CanvasItem, rect: Rect2, color: Color, width: float) -> void:
+	var p := rect.position
+	var s := rect.size
+	var a := p + s * Vector2(0.26, 0.72)
+	var b := p + s * Vector2(0.74, 0.28)
+	var knob := s.x * 0.115
+	var along := (b - a).normalized()
+	var side := Vector2(-along.y, along.x) * knob * 0.85
+	for pass_index in 2:
+		var tone := _shade(color) if pass_index == 0 else color
+		var grow := 1.0 if pass_index == 0 else 0.72
+		_line(ci, a, b, tone, s.x * 0.17 * grow)
+		for end in [a, b]:
+			_disc(ci, end + side, knob * (1.0 if pass_index == 0 else 0.76), tone)
+			_disc(ci, end - side, knob * (1.0 if pass_index == 0 else 0.76), tone)

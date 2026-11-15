@@ -283,7 +283,9 @@ func _build_menu() -> void:
 	var title := Label.new()
 	title.text = "Codefarm"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ui.apply_font(title, 38, FarmPalette.SAGE_DEEP, true)
+	ui.apply_font(title, 44, FarmPalette.INK, true)
+	title.add_theme_color_override("font_outline_color", Color(1.0, 0.99, 0.95, 0.85))
+	title.add_theme_constant_override("outline_size", 10)
 	_menu.add_child(title)
 	# Anchor first, then offsets: assigning position/size here is absolute and
 	# pushed the title and the start button off-screen.
@@ -301,7 +303,7 @@ func _build_menu() -> void:
 	actions.offset_right = 150
 	actions.offset_top = -166
 	actions.offset_bottom = -22
-	_start_button = ui.make_button("继续游戏" if _has_save else "开始游戏", false, 240)
+	_start_button = ui.make_button("继续游戏" if _has_save else "开始游戏", true, 240)
 	_start_button.name = "StartGame"
 	_start_button.custom_minimum_size = Vector2(300, 64)
 	_start_button.pressed.connect(start_game)
@@ -310,7 +312,9 @@ func _build_menu() -> void:
 	_save_notice.text = _save_message if not _save_message.is_empty() else _save_summary() if _has_save else "写下第一行，让农场生长"
 	_save_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_save_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ui.apply_font(_save_notice, 17, FarmPalette.SAGE_DEEP)
+	ui.apply_font(_save_notice, 17, FarmPalette.INK)
+	_save_notice.add_theme_color_override("font_outline_color", Color(1.0, 0.99, 0.95, 0.7))
+	_save_notice.add_theme_constant_override("outline_size", 6)
 	actions.add_child(_save_notice)
 	_start_button.grab_focus()
 
@@ -538,7 +542,7 @@ func _build_ui() -> void:
 	top.offset_top = 14
 	top.offset_bottom = 84
 	top.mouse_filter = Control.MOUSE_FILTER_STOP
-	top.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_BG, 16, Vector4(20, 10, 20, 10), 10))
+	top.add_theme_stylebox_override("panel", ui.flat(FarmPalette.PANEL, 22, Vector4(22, 10, 14, 10), 14))
 	ui_root.add_child(top)
 
 	var top_row := HBoxContainer.new()
@@ -550,7 +554,7 @@ func _build_ui() -> void:
 	title_label.name = "TitleLabel"
 	title_label.text = "Codefarm"
 	title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	ui.apply_font(title_label, 24, FarmPalette.CREAM, true)
+	ui.apply_font(title_label, 24, FarmPalette.INK, true)
 	top_row.add_child(title_label)
 
 	var ver := Label.new()
@@ -572,16 +576,16 @@ func _build_ui() -> void:
 	resources.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	resource_scroll.add_child(resources)
 
-	var hay_chip := ui.resource_chip(FarmIcon.Kind.HAY, "HayLabel", FarmIcon.item_color("hay", FarmPalette.GOLD_SOFT))
+	var hay_chip := ui.resource_chip(FarmIcon.Kind.HAY, "HayLabel", FarmIcon.item_color("hay", FarmPalette.ACCENT_SOFT))
 	hay_chip["row"].tooltip_text = "干草余额"
 	hay_label = hay_chip["label"]
-	_counters["hay"] = {"row": hay_chip["row"], "kind": FarmIcon.Kind.HAY, "color": FarmIcon.item_color("hay", FarmPalette.GOLD_SOFT)}
+	_counters["hay"] = {"row": hay_chip["row"], "kind": FarmIcon.Kind.HAY, "color": FarmIcon.item_color("hay", FarmPalette.ACCENT_SOFT)}
 	resources.add_child(hay_chip["row"])
 
-	var wood_chip := ui.resource_chip(FarmIcon.Kind.WOOD, "WoodLabel", FarmIcon.item_color("wood", FarmPalette.GOLD_SOFT))
+	var wood_chip := ui.resource_chip(FarmIcon.Kind.WOOD, "WoodLabel", FarmIcon.item_color("wood", FarmPalette.ACCENT_SOFT))
 	wood_chip["row"].tooltip_text = "木头"
 	wood_wrap = wood_chip["row"]
-	_counters["wood"] = {"row": wood_chip["row"], "kind": FarmIcon.Kind.WOOD, "color": FarmIcon.item_color("wood", FarmPalette.GOLD_SOFT)}
+	_counters["wood"] = {"row": wood_chip["row"], "kind": FarmIcon.Kind.WOOD, "color": FarmIcon.item_color("wood", FarmPalette.ACCENT_SOFT)}
 	wood_label = wood_chip["label"]
 	wood_wrap.visible = false
 	resources.add_child(wood_wrap)
@@ -598,12 +602,12 @@ func _build_ui() -> void:
 		["cactus", "仙人掌"],
 		["bone", "骨头"],
 	]:
-		var chip := ui.resource_chip(FarmIcon.kind_from_item(spec[0]), spec[0] + "Label", FarmIcon.item_color(spec[0], FarmPalette.GOLD_SOFT))
+		var chip := ui.resource_chip(FarmIcon.kind_from_item(spec[0]), spec[0] + "Label", FarmIcon.item_color(spec[0], FarmPalette.ACCENT_SOFT))
 		chip["row"].tooltip_text = spec[1]
 		chip["row"].visible = false
 		resources.add_child(chip["row"])
 		_item_chips[spec[0]] = chip
-		_counters[spec[0]] = {"row": chip["row"], "kind": FarmIcon.kind_from_item(spec[0]), "color": FarmIcon.item_color(spec[0], FarmPalette.GOLD_SOFT)}
+		_counters[spec[0]] = {"row": chip["row"], "kind": FarmIcon.kind_from_item(spec[0]), "color": FarmIcon.item_color(spec[0], FarmPalette.ACCENT_SOFT)}
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -642,7 +646,7 @@ func _build_ui() -> void:
 
 	backdrop = ColorRect.new()
 	backdrop.name = "Backdrop"
-	backdrop.color = Color(0.07, 0.08, 0.07, 0.46)
+	backdrop.color = FarmPalette.BACKDROP
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.visible = false
 	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -657,7 +661,7 @@ func _build_ui() -> void:
 	overlay_card.offset_right = 560
 	overlay_card.offset_top = -460
 	overlay_card.offset_bottom = 460
-	overlay_card.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_DEEP, 20, Vector4(28, 22, 28, 22), 16))
+	overlay_card.add_theme_stylebox_override("panel", ui.flat(Color(FarmPalette.PANEL, 1.0), 26, Vector4(28, 22, 28, 22), 22))
 	ui_root.add_child(overlay_card)
 	_fit_overlay()
 	get_viewport().size_changed.connect(_fit_overlay)
@@ -670,7 +674,7 @@ func _build_ui() -> void:
 	card_v.add_child(head)
 	overlay_title = Label.new()
 	overlay_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ui.apply_font(overlay_title, 26, FarmPalette.CREAM, true)
+	ui.apply_font(overlay_title, 26, FarmPalette.INK, true)
 	head.add_child(overlay_title)
 	_panel_tabs = preload("res://scripts/farm_tabs.gd").new()
 	_panel_tabs.chosen.connect(func(id: String) -> void:
@@ -719,14 +723,14 @@ func _fit_overlay() -> void:
 
 
 func _window_bar_style() -> StyleBoxFlat:
-	return ui.flat(Color(0.20, 0.24, 0.21, 1), 0, Vector4(12, 6, 10, 6), 0)
+	return ui.flat(FarmPalette.BAR, 0, Vector4(12, 6, 10, 6), 0)
 
 
 func _build_code_window() -> void:
 	code_window = preload("res://scripts/farm_window.gd").new()
 	code_window.name = "CodeWindow"
 	ui_root.add_child(code_window)
-	code_window.setup("代码", ui.make_button, ui.flat(FarmPalette.SAGE_BG, 16, Vector4(0, 0, 0, 0), 14), _window_bar_style(), ui.apply_font)
+	code_window.setup("代码", ui.make_button, ui.flat(FarmPalette.PANEL, 20, Vector4(0, 0, 0, 0), 16), _window_bar_style(), ui.apply_font)
 	code_window.min_window_size = Vector2(360, 280)
 	code_window.set_position(_code_default.position)
 	code_window.set_size(_code_default.size)
@@ -763,7 +767,7 @@ func _build_code_window() -> void:
 	framework_note.name = "FrameworkNote"
 	framework_note.text = "框架已锁定 · 在 main 内编写操作，可在 main 前添加函数"
 	framework_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ui.apply_font(framework_note, 14, Color(0.65, 0.75, 0.68))
+	ui.apply_font(framework_note, 14, FarmPalette.TEXT_DIM)
 	vbox.add_child(framework_note)
 	vbox.add_child(editor_wrap)
 
@@ -789,7 +793,7 @@ func _build_code_window() -> void:
 	editor.text = STARTER
 	editor.highlight_current_line = true
 	editor.wrap_mode = TextEdit.LINE_WRAPPING_NONE
-	var ed_style := ui.flat(Color(0.09, 0.11, 0.10, 1), 12, Vector4(14, 12, 14, 12))
+	var ed_style := ui.flat(FarmPalette.EDITOR_BG, 14, Vector4(14, 12, 14, 12))
 	editor.add_theme_stylebox_override("normal", ed_style)
 	editor.add_theme_stylebox_override("focus", ed_style)
 	editor.add_theme_stylebox_override("read_only", ed_style)
@@ -798,18 +802,18 @@ func _build_code_window() -> void:
 	editor_assist.apply_font_size()
 	editor.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
 	editor.add_theme_color_override("font_readonly_color", FarmPalette.TEXT_DIM)
-	editor.add_theme_color_override("caret_color", FarmPalette.GOLD_SOFT)
-	editor.add_theme_color_override("current_line_color", Color(0.82, 0.68, 0.44, 0.06))
-	editor.add_theme_color_override("selection_color", Color(0.78, 0.62, 0.38, 0.28))
-	editor.add_theme_color_override("font_selected_color", FarmPalette.CREAM)
-	editor.add_theme_color_override("word_highlighted_color", Color(0.78, 0.62, 0.38, 0.16))
+	editor.add_theme_color_override("caret_color", FarmPalette.ACCENT_SOFT)
+	editor.add_theme_color_override("current_line_color", Color(0.93, 0.80, 0.52, 0.16))
+	editor.add_theme_color_override("selection_color", Color(0.93, 0.78, 0.48, 0.42))
+	editor.add_theme_color_override("font_selected_color", FarmPalette.INK)
+	editor.add_theme_color_override("word_highlighted_color", Color(0.93, 0.80, 0.52, 0.28))
 	editor.add_theme_color_override("brace_mismatch_color", FarmPalette.DANGER)
-	editor.add_theme_color_override("font_placeholder_color", Color(0.62, 0.60, 0.54, 0.55))
-	editor.add_theme_color_override("completion_background_color", Color(0.14, 0.17, 0.15, 0.98))
-	editor.add_theme_color_override("completion_selected_color", Color(0.78, 0.64, 0.42, 0.30))
-	editor.add_theme_color_override("completion_existing_color", Color(0.78, 0.64, 0.42, 0.12))
-	editor.add_theme_color_override("completion_font_color", FarmPalette.CREAM)
-	editor.add_theme_color_override("line_number_color", Color(0.70, 0.72, 0.66, 0.90))
+	editor.add_theme_color_override("font_placeholder_color", Color(0.55, 0.52, 0.46, 0.6))
+	editor.add_theme_color_override("completion_background_color", FarmPalette.POPUP_BG)
+	editor.add_theme_color_override("completion_selected_color", Color(0.93, 0.80, 0.52, 0.50))
+	editor.add_theme_color_override("completion_existing_color", Color(0.93, 0.80, 0.52, 0.22))
+	editor.add_theme_color_override("completion_font_color", FarmPalette.INK)
+	editor.add_theme_color_override("line_number_color", Color(0.66, 0.63, 0.56, 0.95))
 	editor.add_theme_constant_override("caret_width", 2)
 	editor.gui_input.connect(editor_assist.gui_input)
 	editor.focus_entered.connect(_on_editor_focus_entered)
@@ -844,7 +848,7 @@ func _build_code_window() -> void:
 	font_badge.offset_right = -10
 	font_badge.offset_bottom = -8
 	font_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	ui.apply_font(font_badge, 16, FarmPalette.GOLD_SOFT, true)
+	ui.apply_font(font_badge, 16, FarmPalette.ACCENT_SOFT, true)
 	editor_assist.attach_font_badge(font_badge)
 	editor_wrap.add_child(font_badge)
 
@@ -871,7 +875,7 @@ func _build_hint_window() -> void:
 	hint_window = preload("res://scripts/farm_window.gd").new()
 	hint_window.name = "HintWindow"
 	ui_root.add_child(hint_window)
-	hint_window.setup("提示", ui.make_button, ui.flat(FarmPalette.SAGE_BG, 16, Vector4(0, 0, 0, 0), 14), _window_bar_style(), ui.apply_font)
+	hint_window.setup("提示", ui.make_button, ui.flat(FarmPalette.PANEL, 20, Vector4(0, 0, 0, 0), 16), _window_bar_style(), ui.apply_font)
 	hint_window.min_window_size = Vector2(360, 180)
 	hint_window.set_position(_hint_default.position)
 	hint_window.set_size(_hint_default.size)
@@ -912,7 +916,7 @@ func _build_hint_window() -> void:
 	hint_col.add_child(hint_body_label)
 	hint_next_label = Label.new()
 	hint_next_label.name = "HintNextLabel"
-	ui.apply_font(hint_next_label, 17, FarmPalette.GOLD_SOFT)
+	ui.apply_font(hint_next_label, 17, FarmPalette.ACCENT_SOFT)
 	hint_col.add_child(hint_next_label)
 	hint_next_code = CodeEdit.new()
 	hint_next_code.name = "HintNextCode"
@@ -927,7 +931,7 @@ func _build_hint_window() -> void:
 		hint_next_code.add_theme_font_override("font", ui.font_mono)
 	hint_next_code.add_theme_font_size_override("font_size", editor_assist.font_size_default)
 	hint_next_code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
-	var next_style := ui.flat(Color(0.09, 0.11, 0.10, 1), 10, Vector4(12, 10, 12, 10))
+	var next_style := ui.flat(FarmPalette.EDITOR_BG, 12, Vector4(12, 10, 12, 10))
 	for state in ["normal", "read_only", "focus"]:
 		hint_next_code.add_theme_stylebox_override(state, next_style)
 	hint_col.add_child(hint_next_code)
@@ -960,7 +964,7 @@ func _build_hint_window() -> void:
 	hint_copied_label.name = "HintCopied"
 	hint_copied_label.text = "已复制"
 	hint_copied_label.visible = false
-	ui.apply_font(hint_copied_label, 17, FarmPalette.GOLD_SOFT)
+	ui.apply_font(hint_copied_label, 17, FarmPalette.ACCENT_SOFT)
 	bar.add_child(hint_copied_label)
 	hint_code = CodeEdit.new()
 	hint_code.name = "HintCode"
@@ -977,8 +981,8 @@ func _build_hint_window() -> void:
 	hint_code.add_theme_font_size_override("font_size", editor_assist.font_size_default)
 	hint_code.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
 	hint_code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
-	hint_code.add_theme_color_override("line_number_color", Color(0.70, 0.72, 0.66, 0.90))
-	var hint_ed := ui.flat(Color(0.09, 0.11, 0.10, 1), 10, Vector4(12, 10, 12, 10))
+	hint_code.add_theme_color_override("line_number_color", Color(0.66, 0.63, 0.56, 0.95))
+	var hint_ed := ui.flat(FarmPalette.EDITOR_BG, 12, Vector4(12, 10, 12, 10))
 	hint_code.add_theme_stylebox_override("normal", hint_ed)
 	hint_code.add_theme_stylebox_override("read_only", hint_ed)
 	hint_code.add_theme_stylebox_override("focus", hint_ed)
@@ -1819,7 +1823,7 @@ func _fill_settings_panel() -> void:
 func _settings_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
-	ui.apply_font(label, 20, FarmPalette.GOLD_SOFT, true)
+	ui.apply_font(label, 20, FarmPalette.ACCENT_SOFT, true)
 	return label
 
 
