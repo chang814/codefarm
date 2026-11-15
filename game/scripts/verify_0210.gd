@@ -67,18 +67,18 @@ func _run() -> void:
 	check(main.get("_farm_meadow").material_override is ShaderMaterial, "meadow uses the patch and cloud shader")
 
 	# Rapid repeats must not walk the bot off its tile.
-	var rig: Node3D = main.get("_bot_rig")
+	var rig: Node3D = main.bot.get("rig")
 	for i in 14:
-		main.call("_play_bot_stuck")
+		main.bot.call("play_stuck")
 		await create_timer(0.03).timeout
 	await settle(0.8)
 	check(absf(rig.position.x) < 0.001, "rapid shakes leave the rig centred, x=%f" % rig.position.x)
 	check(absf(rig.rotation.z) < 0.12, "rapid shakes leave the rig upright")
 	for i in 5:
-		main.call("_play_flip")
+		main.bot.call("play_flip")
 		await create_timer(0.07).timeout
 	await settle(1.2)
-	var base := float(main.get("_drone_base_y"))
+	var base := float(main.bot.get("base_y"))
 	check(absf(main.drone.position.y - base) < 0.03, "rapid flips land at standing height, y=%f" % main.drone.position.y)
 	var tile: Vector3 = main.call("_tile_world", 0, 0)
 	check(absf(main.drone.position.x - tile.x) < 0.01 and absf(main.drone.position.z - tile.z - 0.06) < 0.01, "bot stands on its tile after rapid actions")

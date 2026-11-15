@@ -11,6 +11,7 @@ const FarmAudio := preload("res://scripts/farm_audio.gd")
 const FarmScenery := preload("res://scripts/farm_scenery.gd")
 const FarmLayout := preload("res://scripts/farm_layout.gd")
 const FarmCameraRig := preload("res://scripts/farm_camera_rig.gd")
+const FarmBot := preload("res://scripts/farm_bot.gd")
 
 const VERSION := "0.2.11"
 const TILE_SPACING := FarmLayout.TILE_SPACING
@@ -308,19 +309,11 @@ var _plant_seen: bool = false
 var _highlighted_line: int = -1
 var _pending_line: int = -1
 var _pending_t: float = 0.0
-var _drone_base_y: float = 0.42
 var _hover_t: float = 0.0
-var _harvesting: bool = false
-var _harvest_tween: Tween
-var _flipping: bool = false
-var _tilling: bool = false
 var _shot_hide_plants: bool = false
 var _plots: Dictionary = {}
 var _plots_root: Node3D
 var _shown_size: int = 1
-var _drone_from := Vector3.ZERO
-var _drone_to := Vector3.ZERO
-var _drone_move_t: float = 1.0
 var _pending_paren_adjust: bool = false
 var _completion_prefix: String = ""
 var _blade_mats: Array[StandardMaterial3D] = []
@@ -366,9 +359,6 @@ var _file_bar: HBoxContainer
 var _file_bar_wrap: Control
 var _user_files: Dictionary = {}
 var _active_file := "main.cpp"
-var _extra_drones: Array = []
-var _drones_root: Node3D
-var _view_drone: int = 0
 var _grass_anim_accum: float = 0.0
 var _blade_mm_inst: MultiMeshInstance3D
 var _lod_mm_inst: MultiMeshInstance3D
@@ -379,13 +369,8 @@ var _blade_young: StandardMaterial3D
 var _blade_mid: StandardMaterial3D
 var _blade_ripe: StandardMaterial3D
 var _blade_meshes: Array[ArrayMesh] = []
-var _bot_rig: Node3D
-var _bot_hoe: Node3D
-var _bot_arm_l: Node3D
-var _bot_arm_r: Node3D
-var _bot_eye_l: Node3D
-var _bot_eye_r: Node3D
 var camera_rig: FarmCameraRig
+var bot: FarmBot
 const FONT_SIZE_MIN := 12
 const FONT_SIZE_MAX := 32
 
@@ -414,6 +399,7 @@ const INTRO_DURATION := 1.6
 
 func _ready() -> void:
 	_setup_camera_rig()
+	_setup_bot()
 	farm_tile.visible = false
 	grass_placeholder.visible = false
 	_setup_fonts()
@@ -429,10 +415,9 @@ func _ready() -> void:
 	call_deferred("_refresh_hint_layout")
 	_update_hay()
 	_update_buttons()
-	_drone_base_y = TILE_HEIGHT + 0.18
-	_snap_drone()
+	bot.snap()
 	_soften_lights()
-	_build_bot()
+	bot.build()
 	_setup_session()
 
 
@@ -451,6 +436,20 @@ func _setup_camera_rig() -> void:
 	})
 
 
+
+func _setup_bot() -> void:
+	bot = FarmBot.new()
+	bot.name = "Bot"
+	add_child(bot)
+	bot.setup(host, drone, camera, {
+		"farm_root": farm_root,
+		"juice_anchor": juice_anchor,
+		"tile_world": _tile_world,
+		"farm_size": func() -> int: return _shown_size,
+		"sfx": _sfx,
+	})
+
+
 func _setup_session() -> void:
 	get_tree().auto_accept_quit = false
 	audio = FarmAudio.new()
@@ -463,7 +462,7 @@ func _setup_session() -> void:
 	add_child(_save_timer)
 	_load_progress()
 	_ensure_farm_size(host.get_world_size())
-	_snap_drone()
+	bot.snap()
 	camera_rig.apply_home(host.get_world_size(), true)
 	if start_on_farm:
 		_session_phase = "playing"
@@ -476,7 +475,7 @@ func _setup_session() -> void:
 	camera.position = focus + Vector3(0, 0.10, 2.4)
 	camera.look_at(focus)
 	camera.size = 0.88
-	_bot_rig.rotation = Vector3.ZERO
+	bot.rig.rotation = Vector3.ZERO
 	_clear_portrait(true)
 	_intro_from = camera.transform
 	_intro_size = camera.size
@@ -601,7 +600,7 @@ func _snapshot_progress() -> Dictionary:
 	return {"version": 1, "world": host.save_state(), "files": _user_files.duplicate(),
 		"active_file": _active_file, "hint": hint_skill_id, "exemplar_open": _hint_exemplar_open,
 		"zoom": _skill_view.zoom, "scroll": [scroll.x, scroll.y], "font_size": _font_size,
-		"selected_skill": _selected_skill_id, "bot_yaw": _bot_rig.rotation.y,
+		"selected_skill": _selected_skill_id, "bot_yaw": bot.rig.rotation.y,
 		"hint_visible": hint_window.visible, "code_visible": code_window.visible,
 		"sound": _sound_level}
 
@@ -646,7 +645,7 @@ func _load_progress() -> bool:
 		_hint_exemplar_open = bool(data.get("exemplar_open", false))
 		_skill_view = {"zoom": float(data.zoom), "scroll": Vector2(float(data.scroll[0]), float(data.scroll[1]))}
 		_selected_skill_id = data.get("selected_skill", "")
-		_bot_rig.rotation.y = float(data.bot_yaw)
+		bot.rig.rotation.y = float(data.bot_yaw)
 		hint_window.visible = bool(data.get("hint_visible", true))
 		code_window.visible = bool(data.get("code_visible", true))
 		# Older saves have no sound entry; anything unexpected means full volume.
@@ -692,7 +691,7 @@ func _queue_save(restart: bool = false) -> void:
 
 
 func _save_now() -> bool:
-	if not persistence_enabled or _loading_save or not is_instance_valid(editor) or _bot_rig == null:
+	if not persistence_enabled or _loading_save or not is_instance_valid(editor) or bot.rig == null:
 		return false
 	var ok := FarmSave.write_file(save_path, _snapshot_progress())
 	if not ok:
@@ -1918,9 +1917,9 @@ func _process(delta: float) -> void:
 	elif host.is_running() or host.is_paused() or _stepping:
 		_sync_highlight(delta)
 		if host.take_flip_pulse():
-			_play_flip()
-		if (not _tilling) and str(host.current_action()) == "till" and float(host.current_action_progress()) < 0.28:
-			_play_till_hoe()
+			bot.play_flip()
+		if (not bot.tilling) and str(host.current_action()) == "till" and float(host.current_action_progress()) < 0.28:
+			bot.play_till()
 	elif host.is_finished():
 		_clear_highlight()
 		_update_buttons()
@@ -1930,16 +1929,16 @@ func _process(delta: float) -> void:
 	var harvested: bool = host.take_harvest_pulse()
 	var missed: bool = host.take_harvest_miss_pulse()
 	if harvested:
-		_play_harvest_juice()
+		_on_harvested()
 		_queue_save()
 	elif missed:
-		_play_harvest_swing(false)
+		bot.play_harvest_swing(false)
 		_sfx("miss")
 
 	_ensure_farm_size(host.get_world_size())
 	_update_grass(delta)
-	_sync_drone_fleet()
-	_update_drone(delta)
+	bot.sync_fleet()
+	bot.update(delta)
 	_refresh_file_bar_visibility()
 	camera_rig.update(delta)
 	_update_hay()
@@ -2025,9 +2024,7 @@ func _start_program() -> void:
 func _on_stop() -> void:
 	_stepping = false
 	host.stop()
-	_harvesting = false
-	_flipping = false
-	_tilling = false
+	bot.reset_actions()
 	if editor:
 		editor.editable = true
 	_clear_highlight()
@@ -2265,7 +2262,7 @@ func _present_host_error(runtime: bool) -> void:
 			str(host.error_kind())
 		)
 	if runtime:
-		_play_bot_stuck()
+		bot.play_stuck()
 		# Keep the execution highlight on the failing line.
 		_apply_highlight(int(host.error_line()) - 1)
 	if editor:
@@ -2607,15 +2604,13 @@ func _confirm_reset() -> void:
 	_till_seen = false
 	_plant_seen = false
 	_reset_confirming = false
-	_harvesting = false
-	_flipping = false
-	_tilling = false
+	bot.reset_actions()
 	_stepping = false
 	_clear_highlight()
 	_apply_hint_text()
 	_ensure_farm_size(1)
 	reset_camera(true)
-	_snap_drone()
+	bot.snap()
 	camera_rig.apply_home(1, false)
 	if code_window:
 		if code_window.maximized:
@@ -3907,143 +3902,6 @@ func _point_over_ui(pos: Vector2) -> bool:
 	return false
 
 
-func _snap_drone() -> void:
-	var pos := _tile_world(host.get_drone_x(), host.get_drone_y())
-	drone.position = Vector3(pos.x, _drone_base_y, pos.z + 0.06)
-	_drone_to = drone.position
-	_drone_from = drone.position
-	_drone_move_t = 1.0
-
-
-func _wrap_target(from: Vector3, logical: Vector3) -> Vector3:
-	var span := float(_shown_size) * TILE_SPACING
-	var dx := logical.x - from.x
-	var dz := logical.z - from.z
-	if span > 0.0:
-		if dx > span * 0.5:
-			dx -= span
-		elif dx < -span * 0.5:
-			dx += span
-		if dz > span * 0.5:
-			dz -= span
-		elif dz < -span * 0.5:
-			dz += span
-	return Vector3(from.x + dx, logical.y, from.z + dz)
-
-
-func _place_moving_bot(node: Node3D, from: Vector3, to: Vector3, t: float, hop: float) -> Vector3:
-	var virtual_to := _wrap_target(from, to)
-	var direction := Vector3(virtual_to.x - from.x, 0, virtual_to.z - from.z)
-	var wrapped := virtual_to.distance_to(to) > TILE_SPACING * 0.5
-	if wrapped:
-		# Fold away at the outgoing edge, then unfold at the matching incoming
-		# edge. Never travel through the field or outside the island at full size.
-		var step := direction.normalized() * TILE_SPACING * 0.32
-		if t < 0.5:
-			var a := t * 2.0
-			node.position = from.lerp(from + step, a)
-			node.scale = Vector3.ONE * maxf(0.025, 1.0 - a)
-		else:
-			var a := (t - 0.5) * 2.0
-			node.position = (to - step).lerp(to, a)
-			node.scale = Vector3.ONE * maxf(0.025, a)
-	else:
-		node.position = from.lerp(to, t)
-		node.scale = Vector3.ONE
-	node.position.y = _drone_base_y + sin(t * PI) * hop
-	return direction
-
-
-func _camera_face_yaw() -> float:
-	var to_cam := camera.global_position - drone.global_position
-	to_cam.y = 0.0
-	if to_cam.length_squared() < 0.0001:
-		return 0.0
-	return atan2(to_cam.x, to_cam.z)
-
-
-func _update_drone(delta: float) -> void:
-	var tile := _tile_world(host.get_drone_x(), host.get_drone_y())
-	var logical := Vector3(tile.x, _drone_base_y, tile.z + 0.06)
-	var moving := host.is_running() and host.current_action() == "move"
-	var move_dir := Vector3.ZERO
-	if moving:
-		if Vector2(logical.x, logical.z).distance_to(Vector2(_drone_to.x, _drone_to.z)) > 0.04:
-			_drone_from = Vector3(drone.position.x, _drone_base_y, drone.position.z)
-			_drone_to = logical
-			_drone_move_t = 0.0
-		var t := smoothstep(0.0, 1.0, host.current_action_progress())
-		move_dir = _place_moving_bot(drone, _drone_from, _drone_to, t, 0.12)
-	else:
-		drone.scale = Vector3.ONE
-		if Vector2(drone.position.x, drone.position.z).distance_to(Vector2(logical.x, logical.z)) > 0.8:
-			drone.position = logical
-			_drone_to = logical
-			_drone_from = logical
-			_drone_move_t = 1.0
-		elif Vector2(logical.x, logical.z).distance_to(Vector2(_drone_to.x, _drone_to.z)) > 0.02:
-			_drone_from = drone.position
-			_drone_to = logical
-			_drone_move_t = 0.0
-		if _drone_move_t < 1.0:
-			_drone_move_t = minf(1.0, _drone_move_t + delta / 0.28)
-			var t2 := smoothstep(0.0, 1.0, _drone_move_t)
-			_place_moving_bot(drone, _drone_from, _drone_to, t2, 0.08)
-			if _drone_move_t >= 1.0:
-				drone.position = logical
-				drone.scale = Vector3.ONE
-		elif not _harvesting and not _flipping and not _tilling:
-			drone.position.x = logical.x
-			drone.position.z = logical.z
-			drone.position.y = _drone_base_y + sin(_hover_t * 1.35) * 0.012
-	_animate_bot(delta, moving, move_dir)
-	_update_extra_drones(delta)
-
-
-func _animate_bot(delta: float, moving: bool, move_dir: Vector3) -> void:
-	if _bot_rig == null:
-		return
-	if _flipping or _harvesting or _tilling:
-		pass
-	else:
-		var face := _camera_face_yaw()
-		if moving and move_dir.length_squared() > 0.0001:
-			face = atan2(move_dir.x, move_dir.z)
-			var lean := clampf(move_dir.length() * 0.35, 0.0, 0.28)
-			_bot_rig.rotation.x = lerp_angle(_bot_rig.rotation.x, -lean, 1.0 - exp(-delta * 8.0))
-		else:
-			_bot_rig.rotation.x = lerp_angle(_bot_rig.rotation.x, sin(_hover_t * 1.2) * 0.05, 1.0 - exp(-delta * 6.0))
-		_bot_rig.rotation.y = lerp_angle(_bot_rig.rotation.y, face, 1.0 - exp(-delta * 6.0))
-		_bot_rig.rotation.z = lerp_angle(_bot_rig.rotation.z, sin(_hover_t * 0.9) * 0.04, 1.0 - exp(-delta * 6.0))
-		if _bot_arm_r and not moving:
-			_bot_arm_r.rotation.z = lerp_angle(_bot_arm_r.rotation.z, -0.50 + sin(_hover_t * 1.1) * 0.05, 1.0 - exp(-delta * 4.0))
-
-
-func _play_bot_stuck() -> void:
-	if _bot_rig == null:
-		return
-	_sfx("stuck")
-	# Always shake around the rig's rest pose. Reading the current pose made a
-	# second shake start from the middle of the first, and every rapid repeat
-	# left the bot a little further off its tile.
-	for key in ["_stuck_turn", "_stuck_slide"]:
-		FarmMotion.stop(_bot_rig, key)
-	var origin_x := 0.0
-	var origin_z_rot := 0.0
-	_bot_rig.position.x = origin_x
-	var tw := _bot_rig.create_tween()
-	_bot_rig.set_meta("_stuck_turn", tw)
-	tw.tween_property(_bot_rig, "rotation:z", origin_z_rot + 0.18, 0.07).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(_bot_rig, "rotation:z", origin_z_rot - 0.16, 0.08)
-	tw.tween_property(_bot_rig, "rotation:z", origin_z_rot + 0.10, 0.07)
-	tw.tween_property(_bot_rig, "rotation:z", origin_z_rot, 0.10).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	var tw2 := _bot_rig.create_tween()
-	_bot_rig.set_meta("_stuck_slide", tw2)
-	tw2.tween_property(_bot_rig, "position:x", origin_x + 0.03, 0.06)
-	tw2.tween_property(_bot_rig, "position:x", origin_x - 0.03, 0.08)
-	tw2.tween_property(_bot_rig, "position:x", origin_x, 0.10)
-
-
 func _update_grass(delta: float) -> void:
 	var size := host.get_world_size()
 	for y in size:
@@ -4145,162 +4003,15 @@ func _update_grass(delta: float) -> void:
 					inst.material_override = _blade_ripe
 
 
-func _play_harvest_juice() -> void:
-	_play_harvest_swing(true)
+## A harvest landed: sound, flattened crop on the tile, and the bot's swing.
+func _on_harvested() -> void:
 	_sfx("harvest")
 	var key := Vector2i(host.get_drone_x(), host.get_drone_y())
 	if _plots.has(key):
 		_plots[key]["juice"] = 0.28
 		for blade in _plots[key]["blades"]:
 			blade["visual"] = maxf(STUBBLE, float(blade["visual"]) * 0.45)
-	var kind := host.last_harvested()
-	for i in 5:
-		_spawn_hay_strand(i, key, kind == "Bush")
-
-
-func _play_harvest_swing(success: bool) -> void:
-	if _harvest_tween and is_instance_valid(_harvest_tween):
-		_harvest_tween.kill()
-	_harvesting = true
-	# One interruptible timeline owns the pose, including the recovery callback.
-	# A miss is a flat sideways sweep without reward strands; the crop height
-	# follows the simulator's restarted growth. Both swings follow action speed.
-	var duration := clampf(float(host.action_ticks()) / 400.0 * 0.85, 0.16, 0.42)
-	_harvest_tween = create_tween().set_parallel(true)
-	_harvest_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	var poses := [
-		[_bot_rig, Vector3(0.50, 0, 0) if success else Vector3(0.12, -0.25, 0), Vector3.ZERO],
-		[_bot_arm_r, Vector3(0.95, 0.10, -0.15) if success else Vector3(-0.25, -0.70, -0.50), Vector3(0.20, 0.18, -0.50)],
-		[_bot_hoe, Vector3(1.15, 0.10, -0.25) if success else Vector3(0.15, -0.85, -0.48), Vector3(0.30, 0.10, -0.48)],
-		[_bot_arm_l, Vector3(0.35, 0, 0.28), Vector3(0.25, 0, 0.26)],
-	]
-	for pose in poses:
-		if pose[0]:
-			_harvest_tween.tween_property(pose[0], "rotation", pose[1], duration * 0.45)
-			_harvest_tween.tween_property(pose[0], "rotation", pose[2], duration * 0.55).set_delay(duration * 0.45)
-	if success:
-		_harvest_tween.tween_property(drone, "position:y", _drone_base_y + 0.10, duration * 0.45)
-		_harvest_tween.tween_property(drone, "position:y", _drone_base_y, duration * 0.55).set_delay(duration * 0.45)
-	_harvest_tween.chain().tween_callback(func() -> void: _harvesting = false)
-
-
-func _spawn_hay_strand(index: int, key: Vector2i, wood: bool = false) -> void:
-	var puff := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.018
-	mesh.height = 0.11
-	puff.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	if wood:
-		var shade := 0.38 + 0.06 * float(index)
-		mat.albedo_color = Color(shade, 0.24 + 0.03 * float(index % 3), 0.14, 1)
-	else:
-		var shade := 0.78 + 0.08 * float(index)
-		mat.albedo_color = Color(shade, 0.68 + 0.04 * float(index % 3), 0.32, 1)
-	mat.roughness = 0.55
-	puff.material_override = mat
-	juice_anchor.add_child(puff)
-	var origin := _tile_world(key.x, key.y)
-	var spread := 0.08 * float(index - 2)
-	puff.position = Vector3(origin.x + spread, TILE_HEIGHT + 0.18, origin.z + 0.02 * float(index))
-	puff.rotation = Vector3(0.4, 0.3 * index, 0.2)
-	var start := puff.position
-	var finish := start + Vector3(-0.85 - 0.08 * float(index), 1.05 + 0.05 * float(index), -0.18 + spread)
-	var tw := create_tween()
-	tw.tween_method(
-		func(t: float) -> void:
-			var mid := start.lerp(finish, t)
-			mid.y += 0.85 * sin(t * PI)
-			puff.position = mid
-			puff.rotation.z = t * 3.2
-			puff.scale = Vector3.ONE * (1.0 - 0.35 * t),
-		0.0,
-		1.0,
-		0.42 + 0.04 * float(index)
-	)
-	tw.tween_callback(puff.queue_free)
-
-
-func _play_till_hoe() -> void:
-	_tilling = true
-	_sfx("till")
-	if _bot_rig:
-		var bob := create_tween()
-		bob.tween_property(_bot_rig, "rotation:x", 0.42, 0.10).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		bob.tween_property(_bot_rig, "rotation:x", -0.06, 0.14)
-		bob.tween_property(_bot_rig, "rotation:x", 0.0, 0.16).set_trans(Tween.TRANS_SINE)
-	if _bot_arm_r:
-		var rest_r := Vector3(0.20, 0.18, -0.50)
-		var arms := create_tween()
-		arms.tween_property(_bot_arm_r, "rotation", Vector3(-0.90, 0.15, -0.30), 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		arms.tween_property(_bot_arm_r, "rotation", Vector3(1.05, 0.08, -0.10), 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-		arms.tween_property(_bot_arm_r, "rotation", rest_r, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	if _bot_hoe:
-		var hoe := create_tween()
-		hoe.tween_property(_bot_hoe, "rotation", Vector3(-0.55, 0.15, -0.45), 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		hoe.tween_property(_bot_hoe, "rotation", Vector3(1.25, 0.08, -0.20), 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-		hoe.tween_property(_bot_hoe, "rotation", Vector3(0.30, 0.10, -0.48), 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	if _bot_arm_l:
-		var left := create_tween()
-		left.tween_property(_bot_arm_l, "rotation", Vector3(0.45, 0.0, 0.26), 0.14)
-		left.tween_property(_bot_arm_l, "rotation", Vector3(0.25, 0.0, 0.26), 0.22)
-	var hop := create_tween()
-	hop.tween_property(drone, "position:y", _drone_base_y + 0.06, 0.10).set_trans(Tween.TRANS_SINE)
-	hop.tween_property(drone, "position:y", _drone_base_y - 0.04, 0.14)
-	hop.tween_property(drone, "position:y", _drone_base_y, 0.16).set_trans(Tween.TRANS_SINE)
-	hop.tween_callback(func() -> void:
-		_tilling = false
-	)
-
-
-func _play_flip() -> void:
-	_flipping = true
-	_sfx("flip")
-	if _bot_rig == null:
-		var tw := create_tween()
-		tw.tween_property(drone, "rotation:z", TAU, 0.8).set_trans(Tween.TRANS_CUBIC)
-		tw.tween_callback(func() -> void:
-			drone.rotation.z = 0.0
-			_flipping = false
-		)
-		return
-	# Rapid flips restart from the ground, never from the top of the last hop.
-	FarmMotion.stop(drone, "_flip")
-	_bot_rig.rotation.x = 0.0
-	var start_y := _drone_base_y
-	var tw := create_tween()
-	drone.set_meta("_flip", tw)
-	tw.set_parallel(true)
-	tw.tween_property(_bot_rig, "rotation:x", TAU, 0.72).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(drone, "position:y", start_y + 0.38, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tw.chain().tween_property(drone, "position:y", _drone_base_y, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	tw.chain().tween_callback(func() -> void:
-		if _bot_rig:
-			_bot_rig.rotation.x = 0.0
-		_flipping = false
-	)
-
-
-func _mat(color: Color, rough: float = 0.45, metal: float = 0.0, emission: float = 0.0, emit_color: Color = Color.BLACK) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = rough
-	mat.metallic = metal
-	if emission > 0.0:
-		mat.emission_enabled = true
-		mat.emission = emit_color if emit_color.a > 0.0 else color
-		mat.emission_energy_multiplier = emission
-	return mat
-
-
-func _mesh_inst(mesh: Mesh, mat: Material, pos := Vector3.ZERO, parent: Node3D = null) -> MeshInstance3D:
-	var inst := MeshInstance3D.new()
-	inst.mesh = mesh
-	inst.material_override = mat
-	inst.position = pos
-	if parent:
-		parent.add_child(inst)
-	return inst
+	bot.play_harvest_success(key, host.last_harvested() == "Bush")
 
 
 func _soften_lights() -> void:
@@ -4324,116 +4035,6 @@ func _soften_lights() -> void:
 		fill.shadow_enabled = false
 		fill.rotation_degrees = Vector3(-25, 130, 0)
 		add_child(fill)
-
-
-func _outline_mesh(mesh: Mesh, parent: Node3D, pos: Vector3, scale := 1.045, rot := Vector3.ZERO) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.40, 0.33, 0.26, 1)
-	mat.roughness = 1.0
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_FRONT
-	var inst := _mesh_inst(mesh, mat, pos, parent)
-	inst.rotation = rot
-	inst.scale = Vector3.ONE * scale
-	inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-func _build_bot() -> void:
-	for child in drone.get_children():
-		child.queue_free()
-	drone.scale = Vector3.ONE
-	drone.rotation = Vector3.ZERO
-	_bot_rig = Node3D.new()
-	_bot_rig.name = "Rig"
-	drone.add_child(_bot_rig)
-	var parts := _make_bot_rig(_bot_rig)
-	_bot_eye_l = parts["eye_l"]
-	_bot_eye_r = parts["eye_r"]
-	_bot_arm_l = parts["arm_l"]
-	_bot_arm_r = parts["arm_r"]
-	_bot_hoe = parts["hoe"]
-
-
-func _make_bot_rig(rig: Node3D) -> Dictionary:
-	# Warm matte cream, lower albedo so volume reads under the farm lights.
-	var cream := _mat(Color(0.70, 0.62, 0.50, 1), 0.92, 0.0)
-	var wood := _mat(Color(0.58, 0.40, 0.26, 1), 0.92, 0.0)
-	var metal := _mat(Color(0.42, 0.48, 0.44, 1), 0.78, 0.10)
-	var eye_mat := _mat(Color.BLACK, 0.95, 0.0)
-
-	# Single chubby bean / capsule. No separate head, no feet — it hovers.
-	var body := SphereMesh.new()
-	body.radius = 0.15
-	body.height = 0.30
-	var body_node := _mesh_inst(body, cream, Vector3(0, -0.01, 0), rig)
-	body_node.name = "Body"
-	_outline_mesh(body, rig, Vector3(0, -0.01, 0), 1.05)
-
-	# No face plate: two matte black rounded vertical slots sit on the bean.
-	var eye_mesh := CapsuleMesh.new()
-	eye_mesh.radius = 0.012
-	eye_mesh.height = 0.070
-	var eye_l := Node3D.new()
-	eye_l.name = "EyeLeft"
-	var eye_r := Node3D.new()
-	eye_r.name = "EyeRight"
-	eye_l.position = Vector3(-0.044, 0.025, 0.138)
-	eye_r.position = Vector3(0.044, 0.025, 0.138)
-	rig.add_child(eye_l)
-	rig.add_child(eye_r)
-	_mesh_inst(eye_mesh, eye_mat, Vector3.ZERO, eye_l)
-	_mesh_inst(eye_mesh, eye_mat, Vector3.ZERO, eye_r)
-
-	var arm_l := Node3D.new()
-	var arm_r := Node3D.new()
-	arm_l.position = Vector3(-0.146, 0.005, 0.02)
-	arm_r.position = Vector3(0.146, 0.005, 0.04)
-	arm_l.rotation = Vector3(0.25, 0.0, 0.26)
-	arm_r.rotation = Vector3(0.20, 0.18, -0.50)
-	rig.add_child(arm_l)
-	rig.add_child(arm_r)
-
-	var arm := CapsuleMesh.new()
-	arm.radius = 0.024
-	arm.height = 0.10
-	_mesh_inst(arm, cream, Vector3(0, -0.044, 0.01), arm_l)
-	_mesh_inst(arm, cream, Vector3(0, -0.044, 0.01), arm_r)
-	_outline_mesh(arm, arm_l, Vector3(0, -0.044, 0.01), 1.08)
-	_outline_mesh(arm, arm_r, Vector3(0, -0.044, 0.01), 1.08)
-	var hand := SphereMesh.new()
-	hand.radius = 0.022
-	hand.height = 0.032
-	_mesh_inst(hand, cream, Vector3(0, -0.092, 0.014), arm_l)
-	_mesh_inst(hand, cream, Vector3(0, -0.092, 0.014), arm_r)
-
-	# Hoe lives on the rig so its silhouette stays readable: long wood handle
-	# held at the side, metal head up beside the crown (~0.8 body height).
-	var hoe := Node3D.new()
-	hoe.name = "Hoe"
-	hoe.position = Vector3(0.179, 0.02, 0.05)
-	hoe.rotation = Vector3(0.30, 0.10, -0.48)
-	rig.add_child(hoe)
-	var handle := CylinderMesh.new()
-	handle.top_radius = 0.011
-	handle.bottom_radius = 0.013
-	handle.height = 0.26
-	_mesh_inst(handle, wood, Vector3(0, 0, 0), hoe)
-	var ferrule := SphereMesh.new()
-	ferrule.radius = 0.016
-	ferrule.height = 0.024
-	_mesh_inst(ferrule, metal, Vector3(0, 0.133, 0), hoe)
-	var blade := CapsuleMesh.new()
-	blade.radius = 0.024
-	blade.height = 0.100
-	var blade_n := _mesh_inst(blade, metal, Vector3(0.0, 0.155, 0.016), hoe)
-	blade_n.rotation_degrees = Vector3(80, 16, 0)
-	blade_n.scale = Vector3(1.70, 1.0, 0.48)
-	_outline_mesh(handle, hoe, Vector3(0, 0, 0), 1.08)
-
-	# Right hand sits on the mid-shaft.
-	# (Arm already ends near the hoe origin.)
-
-	return {"eye_l": eye_l, "eye_r": eye_r, "arm_l": arm_l, "arm_r": arm_r, "hoe": hoe}
 
 
 func _field_is_far(plot: Dictionary) -> bool:
@@ -4610,81 +4211,3 @@ func scroll_skills_toward(id: String) -> void:
 			skill_scroll.scroll_horizontal = int(max(0.0, pos.x - 420.0))
 			return
 
-
-func visible_drone_nodes() -> int:
-	var n := 1
-	for item in _extra_drones:
-		if item is Dictionary and item.has("node") and is_instance_valid(item["node"]) and (item["node"] as Node3D).visible:
-			n += 1
-	return n
-
-
-func _sync_drone_fleet() -> void:
-	var n := 1
-	if host and host.has_method("drone_count"):
-		n = maxi(1, int(host.drone_count()))
-	if _drones_root == null:
-		_drones_root = Node3D.new()
-		_drones_root.name = "ExtraDrones"
-		farm_root.add_child(_drones_root)
-	while _extra_drones.size() < n - 1:
-		var id := _extra_drones.size() + 1
-		_extra_drones.append(_spawn_extra_drone(id))
-	while _extra_drones.size() > n - 1:
-		var last: Dictionary = _extra_drones.pop_back()
-		if last.has("node") and is_instance_valid(last["node"]):
-			(last["node"] as Node3D).queue_free()
-	if host and host.has_method("set_view_drone"):
-		if _view_drone >= n:
-			_view_drone = 0
-		host.set_view_drone(_view_drone)
-
-
-func _spawn_extra_drone(id: int) -> Dictionary:
-	var node := Node3D.new()
-	node.name = "Drone_%d" % id
-	_drones_root.add_child(node)
-	var rig := Node3D.new()
-	rig.name = "Rig"
-	node.add_child(rig)
-	_make_bot_rig(rig)
-	var tile := _tile_world(0, 0)
-	node.position = Vector3(tile.x, _drone_base_y, tile.z + 0.06)
-	return {"id": id, "node": node, "rig": rig, "from": node.position, "to": node.position, "t": 1.0}
-
-
-func _update_extra_drones(delta: float) -> void:
-	if not host or not host.has_method("drone_x_at"):
-		return
-	for item in _extra_drones:
-		if not (item is Dictionary) or not item.has("node"):
-			continue
-		var node: Node3D = item["node"]
-		if not is_instance_valid(node):
-			continue
-		var id := int(item["id"])
-		var tile := _tile_world(int(host.drone_x_at(id)), int(host.drone_y_at(id)))
-		var logical := Vector3(tile.x, _drone_base_y, tile.z + 0.06)
-		var to: Vector3 = item["to"]
-		if Vector2(logical.x, logical.z).distance_to(Vector2(to.x, to.z)) > 0.02:
-			item["from"] = node.position
-			item["to"] = logical
-			item["t"] = 0.0
-		if float(item["t"]) < 1.0:
-			item["t"] = minf(1.0, float(item["t"]) + delta / 0.28)
-			var t2 := smoothstep(0.0, 1.0, float(item["t"]))
-			_place_moving_bot(node, item["from"], item["to"], t2, 0.08)
-		else:
-			node.scale = Vector3.ONE
-			node.position.x = logical.x
-			node.position.z = logical.z
-			node.position.y = _drone_base_y + sin(_hover_t * 1.35 + float(id)) * 0.012
-		var rig: Node3D = item["rig"]
-		if rig:
-			var face := 0.0
-			var to_cam := camera.global_position - node.global_position
-			to_cam.y = 0.0
-			if to_cam.length_squared() > 0.0001:
-				face = atan2(to_cam.x, to_cam.z)
-			rig.rotation.y = lerp_angle(rig.rotation.y, face, 1.0 - exp(-delta * 6.0))
-			rig.rotation.x = lerp_angle(rig.rotation.x, sin(_hover_t * 1.2 + float(id)) * 0.05, 1.0 - exp(-delta * 6.0))

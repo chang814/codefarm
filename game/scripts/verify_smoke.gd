@@ -1226,10 +1226,10 @@ int main() {
 		img.save_png(path.path_join("bot-closeup.png"))
 		print("SMOKE screenshot bot-closeup.png")
 	# Mid-harvest pose (snapped, so the swing reads clearly).
-	main.set("_harvesting", true)
-	var hoe_n = main.get("_bot_hoe")
-	var arm_r = main.get("_bot_arm_r")
-	var rig = main.get("_bot_rig")
+	main.bot.set("harvesting", true)
+	var hoe_n = main.bot.get("hoe")
+	var arm_r = main.bot.get("arm_r")
+	var rig = main.bot.get("rig")
 	var hoe_rest = hoe_n.rotation if hoe_n else Vector3.ZERO
 	var arm_rest = arm_r.rotation if arm_r else Vector3.ZERO
 	var rig_rest_x := float(rig.rotation.x) if rig else 0.0
@@ -1251,7 +1251,7 @@ int main() {
 		arm_r.rotation = arm_rest
 	if rig:
 		rig.rotation.x = rig_rest_x
-	main.set("_harvesting", false)
+	main.bot.set("harvesting", false)
 	# A second, clearly orbited camera angle.
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
@@ -1448,13 +1448,13 @@ int main() {
 """
 	main.call("_on_run")
 	main.host.advance_seconds(3.0)
-	if main.has_method("_sync_drone_fleet"):
-		main.call("_sync_drone_fleet")
-	if main.has_method("_update_drone"):
-		main.call("_update_drone", 0.05)
+	if main.bot.has_method("sync_fleet"):
+		main.bot.call("sync_fleet")
+	if main.bot.has_method("update"):
+		main.bot.call("update", 0.05)
 	for _i in 12:
 		await process_frame
-	if main.has_method("visible_drone_nodes") and int(main.call("visible_drone_nodes")) < 2:
+	if main.bot.has_method("visible_drone_nodes") and int(main.bot.call("visible_drone_nodes")) < 2:
 		_fail("画面上应能同时看到至少两台无人机")
 		return
 	if main.has_method("reset_camera"):

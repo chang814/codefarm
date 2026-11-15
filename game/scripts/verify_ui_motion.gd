@@ -149,7 +149,7 @@ func controls_and_harvest_checks(main: Node) -> void:
 	var hay: int = main.host.get_hay()
 	main.host.advance_seconds(0.5)
 	main.call("_process", 0.0)
-	check(not main.host.last_action_success() and main.get("_harvesting"), "miss starts its own swing animation")
+	check(not main.host.last_action_success() and main.bot.get("harvesting"), "miss starts its own swing animation")
 	check(main.host.get_hay() == hay and main.juice_anchor.get_child_count() == 0, "miss has no income or reward particles")
 	await settle(0.12)
 	await capture("ui-028-miss")

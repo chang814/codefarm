@@ -128,28 +128,28 @@ func run() -> void:
 	main.call("_close_panel", true)
 	root.size = Vector2i(1440, 900)
 	await settle()
-	var rig: Node3D = main.get("_bot_rig")
+	var rig: Node3D = main.bot.get("rig")
 	var body: MeshInstance3D = rig.get_node("Body")
 	check(body.mesh is SphereMesh and is_equal_approx(body.mesh.height, body.mesh.radius * 2.0), "main body is a true sphere")
 	var snapshots := [rig.get_node("EyeLeft").transform, rig.get_node("EyeRight").transform]
-	var extras: Dictionary = main.call("_spawn_extra_drone", 1)
+	var extras: Dictionary = main.bot.call("spawn_extra_drone", 1)
 	var extra_rig: Node3D = extras.rig
 	check(extra_rig.get_node("Body").mesh is SphereMesh, "additional machines use the same sphere")
 	check(extra_rig.get_node("Body").material_override.albedo_color == body.material_override.albedo_color, "fleet stays milk yellow")
 	var extra_snapshots := [extra_rig.get_node("EyeLeft").transform, extra_rig.get_node("EyeRight").transform]
 	extras.node.visible = false
 	for success in [true, false]:
-		main.call("_play_harvest_swing", success)
+		main.bot.call("play_harvest_swing", success)
 		for frame in 25:
 			await process_frame
 			assert_eyes(rig, snapshots)
 		await settle(0.45)
-	main.call("_play_till_hoe")
+	main.bot.call("play_till")
 	await settle(0.12)
 	assert_eyes(rig, snapshots)
 	await settle(0.6)
 	for frame in 180:
-		main.call("_animate_bot", 1.0 / 60.0, true, Vector3.RIGHT)
+		main.bot.call("animate", 1.0 / 60.0, true, Vector3.RIGHT)
 		assert_eyes(rig, snapshots)
 		assert_eyes(extra_rig, extra_snapshots)
 		await process_frame
@@ -162,7 +162,7 @@ func run() -> void:
 	main.camera.look_at(main.drone.global_position + Vector3(0, 0.02, 0))
 	await settle()
 	await capture("ui-028-bot-front")
-	main.call("_play_harvest_swing", false)
+	main.bot.call("play_harvest_swing", false)
 	await settle(0.12)
 	assert_eyes(rig, snapshots)
 	await capture("ui-028-bot-miss")
