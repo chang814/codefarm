@@ -2,7 +2,11 @@ extends RefCounted
 ## In-game update log shown by the 日志 panel. Add each release on top, together
 ## with VERSION, game/project.godot, CHANGELOG.md and game/changelog.md.
 
-const TEXT := """0.2.12  —  2026-11-15
+const TEXT := """0.3.0  —  2026-11-15
+
+美术整体重做，换成柔和田园风：低饱和的草甸与地块，作物全部重新建模并加了叶片、藤蔓、花瓣等细节；小 bot 多了腮红和头顶的小叶芽，动作带挤压回弹；收获物会飞进顶栏的计数。界面换成奶油纸感主题，顶栏按钮和资源图标全部重画。玩法、范本和存档不变。
+
+0.2.12  —  2026-11-15
 
 代码结构整理，玩法不变：主场景拆为田地、小 bot、相机、技能树、编辑辅助、多文件等独立组件，解释器按词法、解析、运行时拆分；清理未使用代码与编译警告。文档改为按 Codefarm 自身定位描述，并移除本机路径等个人信息。
 

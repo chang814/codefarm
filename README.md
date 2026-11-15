@@ -1,10 +1,12 @@
-# Codefarm 0.2.11
+# Codefarm 0.3.0
 
 **用 C++ 写代码，让小 bot 帮你种田。**
 
 一个中文 3D 编程农场游戏：从一次 `harvest()` 开始，用循环、条件、函数、数组和多机协作，把手动农场变成自己的自动化系统。C++ 模拟器负责规则，Godot 4.7.2 呈现柔和的农场与交互。
 
 **[下载 Windows 免安装试玩版](https://github.com/chang814/codefarm/releases/latest)** · [反馈问题](https://github.com/chang814/codefarm/issues) · [更新日志](CHANGELOG.md)
+
+> 源码当前为 0.3.0（美术整体重做）。下载页的试玩包仍是 0.2.11，新的试玩包需要在 Windows 上重新打包后发布。
 
 ![Codefarm 欢迎页](shots/share-welcome.png)
 

@@ -20,7 +20,7 @@ const FarmSkillTree := preload("res://scripts/farm_skill_tree.gd")
 const FarmCollectFx := preload("res://scripts/farm_collect_fx.gd")
 const FarmLayout := preload("res://scripts/farm_layout.gd")
 
-const VERSION := "0.2.12"
+const VERSION := "0.3.0"
 const STARTER := """#include <bits/stdc++.h>
 using namespace std;
 

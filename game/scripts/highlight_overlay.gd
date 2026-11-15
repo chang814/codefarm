@@ -3,8 +3,8 @@ extends Control
 ## Draws a finer execution highlight over a CodeEdit: a slim gold tick,
 ## a soft wash, a left-to-right rounded progress fill, and a fading previous line.
 
-const WASH := Color(0.95, 0.80, 0.48, 0.30)
-const FILL := Color(0.95, 0.78, 0.44, 0.42)
+const WASH := Color(0.95, 0.80, 0.48, 0.18)
+const FILL := Color(0.95, 0.78, 0.44, 0.26)
 const TICK := Color(0.88, 0.62, 0.28, 1)
 const FADE_SPEED := 4.2
 const GUIDE := Color(0.70, 0.60, 0.44, 0.22)
