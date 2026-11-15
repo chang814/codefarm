@@ -67,9 +67,9 @@ func controls_and_harvest_checks(main: Node) -> void:
 	main.host.advance_seconds(1.1)
 	check(main.host.get_hay() == 1, "solid run stays stopped after completion")
 	# Reproduce reset with a header active and old files present.
-	main.call("_switch_user_file", "old.hpp")
+	main.code_files.call("switch_to", "old.hpp")
 	main.editor.text = "void old() {}"
-	main.call("_flush_active_file")
+	main.code_files.call("flush_active")
 	click(main.settings_button)
 	await settle()
 	click(text_button(main.overlay_body, "重置农场"))
@@ -82,7 +82,7 @@ func controls_and_harvest_checks(main: Node) -> void:
 	click(text_button(main.overlay_body, "确认重置"))
 	await settle()
 	check(main.host.get_hay() == 0 and main.editor.text == main.STARTER.replace("\r", ""), "reset confirmation restores farm and editor")
-	check(main.get("_active_file") == "main.cpp" and main.get("_user_files").size() == 1, "reset clears user files")
+	check(main.code_files.get("active_file") == "main.cpp" and main.code_files.get("user_files").size() == 1, "reset clears user files")
 	check(main.editor.protect_framework, "reset restores main framework protection from an active header")
 	main.editor.text = main.STARTER.replace("harvest();", "harvest();\n    harvest();")
 	for expected in [1, 2]:

@@ -974,29 +974,29 @@ int main() {
 	print("SMOKE simulate() ran")
 
 	# Multi-file bar appears only after include is unlocked.
-	if main.get("_file_bar_wrap") != null and bool(main.get("_file_bar_wrap").visible):
+	if main.code_files.get("file_bar_wrap") != null and bool(main.code_files.get("file_bar_wrap").visible):
 		_fail("未解锁分文件时不应露出文件栏")
 		return
 	if main.host.has_method("debug_grant"):
 		main.host.call("debug_grant", "func")
 		main.host.call("debug_grant", "include")
-	if main.has_method("_refresh_file_bar_visibility"):
-		main.call("_refresh_file_bar_visibility")
+	if main.code_files.has_method("refresh_bar_visibility"):
+		main.code_files.call("refresh_bar_visibility")
 	for _i in 4:
 		await process_frame
-	var bar_wrap = main.get("_file_bar_wrap")
+	var bar_wrap = main.code_files.get("file_bar_wrap")
 	if bar_wrap == null or not bool(bar_wrap.visible):
 		_fail("解锁分文件后应出现可切换的文件栏")
 		return
-	if main.has_method("_new_user_file"):
-		main.call("_new_user_file")
+	if main.code_files.has_method("new_file"):
+		main.code_files.call("new_file")
 	for _i in 4:
 		await process_frame
-	if str(main.get("_active_file")) == "main.cpp":
+	if str(main.code_files.get("active_file")) == "main.cpp":
 		_fail("新建用户文件后应能切离 main.cpp")
 		return
-	if main.has_method("_switch_user_file"):
-		main.call("_switch_user_file", "main.cpp")
+	if main.code_files.has_method("switch_to"):
+		main.code_files.call("switch_to", "main.cpp")
 	print("SMOKE multi-file editor ok")
 	# Isolated UI fixture: the existing smoke grants above expose file controls.
 	# Full gameplay progression is verified separately without grants in C++.
@@ -1005,7 +1005,7 @@ int main() {
 	load_button.pressed.emit()
 	var headers: Dictionary = load("res://scripts/skill_data.gd").exemplar_headers("include")
 	for name in headers:
-		if main.get("_user_files").get(name, "") != headers[name]:
+		if main.code_files.get("user_files").get(name, "") != headers[name]:
 			_fail("载入分文件范本时必须同时载入头文件 " + name)
 			return
 	main.set("hint_skill_id", "include")

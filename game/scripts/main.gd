@@ -15,6 +15,7 @@ const FarmPalette := preload("res://scripts/farm_palette.gd")
 const FarmChangelog := preload("res://scripts/farm_changelog.gd")
 const FarmUiKit := preload("res://scripts/farm_ui_kit.gd")
 const FarmEditorAssist := preload("res://scripts/farm_editor_assist.gd")
+const FarmCodeFiles := preload("res://scripts/farm_code_files.gd")
 
 const VERSION := "0.2.11"
 const STARTER := """#include <bits/stdc++.h>
@@ -117,15 +118,12 @@ var _skill_glow_nodes: Array = []
 var skill_scroll: ScrollContainer
 var _skill_more_hint: Control
 var _skill_view := {"zoom": 1.0, "scroll": Vector2.ZERO}
-var _file_bar: HBoxContainer
-var _file_bar_wrap: Control
-var _user_files: Dictionary = {}
-var _active_file := "main.cpp"
 var camera_rig: FarmCameraRig
 var bot: FarmBot
 var field: FarmField
 var ui: FarmUiKit
 var editor_assist: FarmEditorAssist
+var code_files: FarmCodeFiles
 
 @export var persistence_enabled := true
 @export var start_on_farm := false  # Explicit scene fixture option for isolated UI tests.
@@ -347,12 +345,12 @@ func smootherstep(t: float) -> float:
 
 
 func _snapshot_progress() -> Dictionary:
-	_flush_active_file()
+	code_files.flush_active()
 	if is_instance_valid(skill_scroll):
 		_skill_view = {"zoom": skill_scroll.zoom, "scroll": Vector2(skill_scroll.scroll_horizontal, skill_scroll.scroll_vertical)}
 	var scroll: Vector2 = _skill_view.scroll
-	return {"version": 1, "world": host.save_state(), "files": _user_files.duplicate(),
-		"active_file": _active_file, "hint": hint_skill_id, "exemplar_open": _hint_exemplar_open,
+	return {"version": 1, "world": host.save_state(), "files": code_files.user_files.duplicate(),
+		"active_file": code_files.active_file, "hint": hint_skill_id, "exemplar_open": _hint_exemplar_open,
 		"zoom": _skill_view.zoom, "scroll": [scroll.x, scroll.y], "font_size": editor_assist.font_size,
 		"selected_skill": _selected_skill_id, "bot_yaw": bot.rig.rotation.y,
 		"hint_visible": hint_window.visible, "code_visible": code_window.visible,
@@ -390,10 +388,7 @@ func _load_progress() -> bool:
 		var data := FarmSave.read_file(path)
 		if not _valid_progress(data) or not host.load_state(data.world):
 			continue
-		_user_files = data.files.duplicate()
-		_active_file = data.active_file
-		editor.protect_framework = _active_file == "main.cpp"
-		editor.text = _user_files[_active_file]
+		code_files.restore(data.files, data.active_file)
 		editor_assist.set_font_size(int(data.font_size), false, false)
 		hint_skill_id = data.get("hint", "")
 		_hint_exemplar_open = bool(data.get("exemplar_open", false))
@@ -405,8 +400,8 @@ func _load_progress() -> bool:
 		# Older saves have no sound entry; anything unexpected means full volume.
 		var sound = data.get("sound", 2)
 		_set_sound_level(int(sound) if (sound is float or sound is int) and is_finite(float(sound)) else 2)
-		_rebuild_file_bar()
-		_push_includes_to_host()
+		code_files.rebuild_bar()
+		code_files.push_includes_to_host()
 		_apply_hint_text()
 		# Mark already-owned introductory hints seen; reopening must not replace the saved hint.
 		_loops_seen = host.loops_unlocked()
@@ -488,6 +483,13 @@ func _setup_editor_assist() -> void:
 			_on_stop()
 		_maybe_dismiss_error_on_click(pos)
 	)
+
+
+func _setup_code_files() -> void:
+	code_files = FarmCodeFiles.new()
+	code_files.name = "CodeFiles"
+	add_child(code_files)
+	code_files.setup(editor, host, ui, STARTER)
 
 
 func _build_ui() -> void:
@@ -704,16 +706,16 @@ func _build_code_window() -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	code_window.content.add_child(vbox)
 
-	_file_bar_wrap = Control.new()
-	_file_bar_wrap.name = "FileBarWrap"
-	_file_bar_wrap.custom_minimum_size = Vector2(0, 32)
-	_file_bar_wrap.visible = false
-	vbox.add_child(_file_bar_wrap)
-	_file_bar = HBoxContainer.new()
-	_file_bar.name = "FileBar"
-	_file_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_file_bar.add_theme_constant_override("separation", 6)
-	_file_bar_wrap.add_child(_file_bar)
+	var file_bar_wrap := Control.new()
+	file_bar_wrap.name = "FileBarWrap"
+	file_bar_wrap.custom_minimum_size = Vector2(0, 32)
+	file_bar_wrap.visible = false
+	vbox.add_child(file_bar_wrap)
+	var file_bar := HBoxContainer.new()
+	file_bar.name = "FileBar"
+	file_bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	file_bar.add_theme_constant_override("separation", 6)
+	file_bar_wrap.add_child(file_bar)
 
 	var editor_wrap := Control.new()
 	editor_wrap.name = "EditorWrap"
@@ -729,6 +731,9 @@ func _build_code_window() -> void:
 
 	editor = preload("res://scripts/farm_code_editor.gd").new()
 	_setup_editor_assist()
+	_setup_code_files()
+	code_files.file_bar_wrap = file_bar_wrap
+	code_files.file_bar = file_bar
 	editor.name = "CodeEditor"
 	editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	editor.gutters_draw_line_numbers = true
@@ -1150,7 +1155,7 @@ func _process(delta: float) -> void:
 	field.update(delta)
 	bot.sync_fleet()
 	bot.update(delta)
-	_refresh_file_bar_visibility()
+	code_files.refresh_bar_visibility()
 	camera_rig.update(delta)
 	_update_hay()
 	_maybe_unlock_hint()
@@ -1210,15 +1215,9 @@ func _start_program() -> void:
 		return
 	_clear_error_markup()
 	_clear_highlight()
-	_flush_active_file()
-	_push_includes_to_host()
-	var src := editor.text if _active_file == "main.cpp" else str(_user_files.get("main.cpp", editor.text))
-	if _active_file != "main.cpp" and _user_files.has("main.cpp"):
-		src = str(_user_files["main.cpp"])
-	# Always run the main file; unsaved current include is already pushed.
-	if _active_file == "main.cpp":
-		src = editor.text
-	var err: String = host.load_script(src)
+	code_files.push_includes_to_host()
+	# Always run main.cpp, whichever file is open; headers were just pushed.
+	var err: String = host.load_script(code_files.main_source())
 	if err != "":
 		_present_host_error(false)
 		_stepping = false
@@ -1456,8 +1455,8 @@ func _present_host_error(runtime: bool) -> void:
 	_error_latched = true
 	_error_runtime = runtime
 	_error_history.append(message)
-	if editor and _active_file != "main.cpp":
-		_switch_user_file("main.cpp")
+	if editor and code_files.active_file != FarmCodeFiles.MAIN_FILE:
+		code_files.switch_to(FarmCodeFiles.MAIN_FILE)
 	if editor:
 		var target_line := clampi(int(host.error_line()) - 1, 0, editor.get_line_count() - 1)
 		editor.set_caret_line(target_line)
@@ -1799,12 +1798,8 @@ func _settings_label(text: String) -> Label:
 func _confirm_reset() -> void:
 	_on_stop()
 	host.reset_world()
-	_user_files = {"main.cpp": STARTER}
-	_active_file = "main.cpp"
 	hint_skill_id = ""
-	editor.protect_framework = true
-	editor.text = STARTER
-	_rebuild_file_bar()
+	code_files.reset_to_starter()
 	editor.editable = true
 	_clear_error_markup()
 	_loops_seen = false
@@ -2444,15 +2439,7 @@ func _load_exemplar(id: String) -> void:
 		return
 	# An exemplar is a whole C++ program, never a snippet to put inside main.
 	_on_stop()
-	if _active_file != "main.cpp":
-		_switch_user_file("main.cpp")
-	editor.text = text
-	_user_files["main.cpp"] = text
-	var headers := FarmSkillData.exemplar_headers(id)
-	for name in headers:
-		_user_files[str(name)] = str(headers[name])
-	_rebuild_file_bar()
-	_push_includes_to_host()
+	code_files.load_program(text, FarmSkillData.exemplar_headers(id))
 
 
 func click_skill_node(id: String) -> void:
@@ -2561,101 +2548,6 @@ func _soften_lights() -> void:
 		fill.shadow_enabled = false
 		fill.rotation_degrees = Vector3(-25, 130, 0)
 		add_child(fill)
-
-
-func _flush_active_file() -> void:
-	if editor == null:
-		return
-	_user_files[_active_file] = editor.text
-	if _active_file != "main.cpp" and not _user_files.has("main.cpp"):
-		_user_files["main.cpp"] = STARTER
-
-
-func _push_includes_to_host() -> void:
-	if host == null or not host.has_method("set_include"):
-		return
-	if not host.is_unlocked("include"):
-		return
-	_flush_active_file()
-	for name in _user_files.keys():
-		if str(name) == "main.cpp":
-			continue
-		host.set_include(str(name), str(_user_files[name]))
-
-
-func _refresh_file_bar_visibility() -> void:
-	var show := host != null and host.is_unlocked("include")
-	if _file_bar_wrap:
-		_file_bar_wrap.visible = show
-	if show and _file_bar and _file_bar.get_child_count() == 0:
-		if not _user_files.has("main.cpp") and editor:
-			_user_files["main.cpp"] = editor.text
-		_rebuild_file_bar()
-
-
-func _rebuild_file_bar() -> void:
-	if _file_bar == null:
-		return
-	for child in _file_bar.get_children():
-		_file_bar.remove_child(child)
-		child.queue_free()
-	var names: Array = ["main.cpp"]
-	for k in _user_files.keys():
-		if str(k) != "main.cpp" and str(k) not in names:
-			names.append(str(k))
-	for name in names:
-		var btn := Button.new()
-		btn.text = str(name)
-		btn.flat = true
-		btn.set_meta("file_name", str(name))
-		btn.custom_minimum_size = Vector2(72, 28)
-		ui.apply_font(btn, 15, FarmPalette.GOLD_SOFT if _active_file == str(name) else FarmPalette.TEXT_DIM, true)
-		var chosen := str(name)
-		btn.pressed.connect(func() -> void:
-			_switch_user_file(chosen)
-		)
-		_file_bar.add_child(btn)
-		FarmMotion.bind_hover(btn, 1.02, 0.97)
-	var add := Button.new()
-	add.text = "+"
-	add.tooltip_text = "新建文件"
-	add.custom_minimum_size = Vector2(32, 28)
-	ui.apply_font(add, 18, FarmPalette.GOLD_SOFT, true)
-	add.pressed.connect(_new_user_file)
-	_file_bar.add_child(add)
-
-
-func _switch_user_file(name: String) -> void:
-	_flush_active_file()
-	_active_file = name
-	if editor:
-		editor.protect_framework = name == "main.cpp"
-	if not _user_files.has(name):
-		_user_files[name] = ""
-	if editor:
-		editor.text = str(_user_files[name])
-	if _file_bar:
-		for button in _file_bar.get_children():
-			if button is Button and button.has_meta("file_name"):
-				var is_active: bool = str(button.get_meta("file_name")) == name
-				button.add_theme_color_override("font_color", FarmPalette.GOLD_SOFT if is_active else FarmPalette.TEXT_DIM)
-	if editor:
-		FarmMotion.stop(editor, "_file_fade")
-		editor.modulate.a = 0.65
-		var fade := editor.create_tween()
-		editor.set_meta("_file_fade", fade)
-		fade.tween_property(editor, "modulate:a", 1.0, 0.18)
-
-
-func _new_user_file() -> void:
-	var n := 1
-	var name := "rows.hpp"
-	while _user_files.has(name):
-		n += 1
-		name = "rows_%d.hpp" % n
-	_user_files[name] = "void harvest_row() {\n    for (int i = 0; i < get_world_size(); i++) {\n        if (can_harvest()) harvest();\n        move(East);\n    }\n}\n"
-	_switch_user_file(name)
-	_rebuild_file_bar()
 
 
 func scroll_skills_toward(id: String) -> void:
