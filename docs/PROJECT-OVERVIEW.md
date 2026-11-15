@@ -4,15 +4,15 @@
 
 ## 唯一标准
 
-**只认笔记本上的 `D:\桌面\codefarm`。** 这是所有 AI 共同使用的那一份。云电脑 `/workspace/codefarm` 只是工作副本，必须先和桌面对齐再改，改完写回桌面。两边不一致时以桌面为准，禁止用旧的云端包覆盖桌面。详细约定见 [SOURCE.md](SOURCE.md)。
+**只认维护者笔记本上的本机仓库（下文写作 `<本机仓库>`）。** 这是所有 AI 共同使用的那一份；GitHub 上的 `chang814/codefarm` 是公开镜像。云电脑 云端工作副本 只是工作副本，必须先和桌面对齐再改，改完写回桌面。两边不一致时以桌面为准，禁止用旧的云端包覆盖桌面。详细约定见 [SOURCE.md](SOURCE.md)。
 
 每次改动都要升版本（或至少写进当前版本的更新日志），并且同时改 `VERSION`、`project.godot`、`main.gd` 和三处 changelog。方向以本概况、[playthrough.md](playthrough.md)、[skill-tree-design.md](skill-tree-design.md)、[endless-design.md](endless-design.md)（仅计划）以及最新的 `docs/review-*.md` 为准，不要另起一套。
 
-写代码交给 Codex CLI；Codex Bot 负责派活、监督、验收和同步。
+写代码默认交给 Codex CLI，畅也可以直接指定其他 Agent；Codex Bot 负责派活、监督、验收和同步。
 
 ## 一句话定位
 
-Codefarm 是用 **标准 C++** 写逻辑、用 **Godot 4.7.2** 呈现的 3D 编程农场，相当于 C++ 版的 *The Farmer Was Replaced*。工作标题和窗口标题都叫 Codefarm，界面为中文。仓库不使用、也不分发任何原作贴图、音乐或商标名。
+Codefarm 是用 **标准 C++** 写逻辑、用 **Godot 4.7.2** 呈现的 3D 编程农场，玩家写 C++ 程序让小 bot 自动经营农场。工作标题和窗口标题都叫 Codefarm，界面为中文。仓库不使用、也不分发任何其他游戏的贴图、音乐、名称或商标，文档也按 Codefarm 自身来描述，不写成「某某游戏的 C++ 版」。
 
 ## 设计理念
 
@@ -23,9 +23,9 @@ Codefarm 是用 **标准 C++** 写逻辑、用 **Godot 4.7.2** 呈现的 3D 编�
 
 ## 当前状态
 
-0.2.2 已按正常玩法从新存档买完全部 45 个技能节点（全程约 52 分钟游戏时间，这是代码写好就跑的下限），每个节点都有范本。0.2.3 优化了图标按钮与选项动效；0.2.4 优化默认 20px 编辑器、框架保护与报错；0.2.5 补上技能树左键拖动。0.2.6 修复最大化瞬移、快速交互与范本载入。0.2.7 用未熟草重置生长代替固定失败惩罚：成功和空挥都按当前动作时间，盲收幼苗会停产，查询不伤幼苗。0.2.8 整理技能树、突出提示中的下一行代码，并将 bot 改为球形与固定竖眼。0.2.9 补上自动存档、欢迎页与音效。0.2.10 修复 bot 偏移与编辑器输入，加入草甸背景、圆角地块和独立技能图标。最新验收见 [review-0.2.8.md](review-0.2.8.md)，教学与长期玩法的后续问题仍见 [review-0.2.4.md](review-0.2.4.md)。无尽 / 优化挑战只写了计划，见 [endless-design.md](endless-design.md)。尚未经畅试玩认可，**不要 git init，也不要上传 GitHub**。
+0.2.2 已按正常玩法从新存档买完全部 45 个技能节点（全程约 52 分钟游戏时间，这是代码写好就跑的下限），每个节点都有范本。0.2.3 优化了图标按钮与选项动效；0.2.4 优化默认 20px 编辑器、框架保护与报错；0.2.5 补上技能树左键拖动。0.2.6 修复最大化瞬移、快速交互与范本载入。0.2.7 用未熟草重置生长代替固定失败惩罚：成功和空挥都按当前动作时间，盲收幼苗会停产，查询不伤幼苗。0.2.8 整理技能树、突出提示中的下一行代码，并将 bot 改为球形与固定竖眼。0.2.9 补上自动存档、欢迎页与音效。0.2.10 修复 bot 偏移与编辑器输入，加入草甸背景、圆角地块和独立技能图标。最新验收见 [review-0.2.8.md](review-0.2.8.md)，教学与长期玩法的后续问题仍见 [review-0.2.4.md](review-0.2.4.md)。无尽 / 优化挑战只写了计划，见 [endless-design.md](endless-design.md)。0.2.11 起仓库已在 GitHub 公开并发布 Windows 试玩包；推送只进各自的任务分支，合并 `main` 和发布由畅确认。
 
-笔记本上的可玩副本在 `D:\桌面\codefarm`。请先完全退出 Godot，再用 Godot 4.7.2 打开其中的 `game` 文件夹。
+笔记本上的可玩副本在本机仓库。请先完全退出 Godot，再用 Godot 4.7.2 打开其中的 `game` 文件夹。
 
 ### 版本历史摘要
 
@@ -102,7 +102,7 @@ codefarm/
 
 ## 技能树 / 课程表
 
-下表是第 1 级花费和「痛 / 药」。加速、扩田、作物等还可以继续升级，完整阶梯见 `sim/include/codefarm/types.hpp`。更细的机制和原作对照见 [skill-tree-design.md](skill-tree-design.md)、[playthrough.md](playthrough.md)、[research/UNLOCK-CURRICULUM.md](research/UNLOCK-CURRICULUM.md)。
+下表是第 1 级花费和「痛 / 药」。加速、扩田、作物等还可以继续升级，完整阶梯见 `sim/include/codefarm/types.hpp`。更细的机制和原作对照见 [skill-tree-design.md](skill-tree-design.md)、[playthrough.md](playthrough.md)、内部研究笔记 UNLOCK-CURRICULUM.md（未随仓库公开）。
 
 「成本」随胡萝卜一起获得，不必单独购买。
 
@@ -176,33 +176,33 @@ xvfb-run -a -s "-screen 0 1440x900x24" ./tools/Godot_v4.7.2-stable_linux.x86_64 
 
 本机若还没有编辑器，从 [Godot 4.7.2](https://godotengine.org/download/archive/4.7.2-stable/) 下载官方包，用 **4.7.x** 打开 `game/`。仓库里的官方 Linux 二进制在 `tools/Godot_v4.7.2-stable_linux.x86_64`。
 
-### Windows（笔记本 `D:\桌面\codefarm`）
+### Windows（笔记本 `<本机仓库>`）
 
-CMake 在 `D:\bin\win64\cmake\bin`，编译器用 `D:\mingw64`，Ninja 增量编到 `D:\桌面\codefarm\build-win`。PowerShell 里不要写 `\"`，改用 `cmd.exe /c '...'`：
+CMake 在 `<CMake>\bin`，编译器用 `<MinGW>`，Ninja 增量编到 `<本机仓库>\build-win`。PowerShell 里不要写 `\"`，改用 `cmd.exe /c '...'`：
 
 ```bat
-cmd.exe /c "set PATH=D:\mingw64\bin;D:\bin\win64\cmake\bin;%PATH% && cd /d D:\桌面\codefarm\build-win && cmake --build ."
+cmd.exe /c "set PATH=<MinGW>\bin;<CMake>\bin;%PATH% && cd /d <本机仓库>\build-win && cmake --build ."
 ```
 
 首次配置（若还没有 build-win）：
 
 ```bat
-cmd.exe /c "set PATH=D:\mingw64\bin;D:\bin\win64\cmake\bin;%PATH% && cd /d D:\桌面\codefarm && cmake -S . -B build-win -G Ninja -DCODEFARM_BUILD_EXTENSION=ON"
+cmd.exe /c "set PATH=<MinGW>\bin;<CMake>\bin;%PATH% && cd /d <本机仓库> && cmake -S . -B build-win -G Ninja -DCODEFARM_BUILD_EXTENSION=ON"
 ```
 
 编完后，把 `codefarm.windows.template_debug.x86_64.dll` 以及 MinGW 运行库 `libgcc_s_seh-1.dll`、`libstdc++-6.dll`、`libwinpthread-1.dll` 放到 `game\bin`。
 
-**必须完全退出 Godot，再重新打开 `D:\桌面\codefarm\game`。** 不要强杀 Godot，也不要用还开着的旧窗口预览。扩展更新后必须重新加载。
+**必须完全退出 Godot，再重新打开 `<本机仓库>\game`。** 不要强杀 Godot，也不要用还开着的旧窗口预览。扩展更新后必须重新加载。
 
 从项目根运行测试（0.2.3 起应能找到范本）：
 
 ```bat
-cmd.exe /c "set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-win\codefarm_tests.exe"
+cmd.exe /c "set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\codefarm_tests.exe"
 ```
 
 ### 必须保持全绿的测试
 
-- `codefarm_tests`：单元测试（Linux 上 0.2.2 为 1167 项，0.2.3 不应减少）。其中包含：
+- `codefarm_tests`：单元测试（0.2.11 为 1844 项，数量只能增加）。其中包含：
   - `test_full_playthrough`：从新存档按课程表通关，全程不用测试后门。
   - `test_every_node_has_exemplar`：每个节点都有能解析、能运行的范本。
 - 修改范本后，通关测试必须仍然通过。
@@ -220,23 +220,24 @@ cmd.exe /c "set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-
 - **视角：** 左键在地面按住拖动平移，地面跟着手走，松手后有一点惯性；约 6 像素以内仍算点击。左键点在窗口和按钮上只操作界面，不带动地图。右键转视角（1:1，不插值滞后），滚轮朝光标缩放，WASD 移动（松开即停），空格 / Shift 升降，F 回正。中键或 Shift+右键也能平移。技能树空白处（以及从节点上开始）同样可以左键拖动画布，手感与地图一致；打开的技能详情不会被拖走，技能树打开时不会拖动地图。
 - **运行：** 实心三角把 `main` 跑完即停，空心三角单步，点进编辑器即停。程序停止后草地仍继续生长。不再自动反复执行 `main`。加速只缩短动作，不缩短生长。失败收割和成功收割均花 action_ticks()；未成熟草在收割开始时重置为 400 tick 幼苗，动作期间正常生长。查询为 1 tick，不重置生长。开局收割与生长都是 400 tick（1 秒）。
 - **范本**一步只多一个新概念，测试和游戏读同一份文件。
-- **未经畅认可，不上传 GitHub，也不要自行 `git init`。**
-- 不要碰 `D:\桌面\一些重要的密码agent勿碰`。不要把测试后门（`grant_for_test` 等）当成玩法。
+- **GitHub：** 只推送到自己的任务分支（`claude/`、`codex/`、`chore/` 等前缀）；合并 `main`、发布、改仓库设置都要畅本人确认。
+- **公开文件里不写本机路径、用户名和机器信息**，用 `<本机仓库>` 这类占位符。
+- 不要碰维护者本机的私人凭据目录。不要把测试后门（`grant_for_test` 等）当成玩法。
 
 ## 已知问题与待办
 
 - **无尽 / 优化挑战：** 只有计划，见 [endless-design.md](endless-design.md)。主线通关后要用同一套模拟器给固定挑战打分（tick、代码量、动作数），并和范本基准以及个人最好成绩对比。这一轮按畅的要求先只写计划。
-- **[research/NEXT-PASSES.md](research/NEXT-PASSES.md)** 是 0.2.0 施工前的落地顺序。P0–P6 的主线机制已在 0.2.0–0.2.1 落地，通关与范本已在 0.2.2 落地。里面还没做成产品的主要是：无尽挑战 / 排行榜、隐藏成就（可不做墙）、DLC 采矿 / 水稻 / 竹子（只留接口，不挡主线）。
-- **Windows 测试找不到范本：** 0.2.2 在 `D:\桌面\codefarm` 运行 `build-win\codefarm_tests.exe` 时，CMake 把带「桌面」的绝对路径写进窄字符宏，MinGW 的 `ifstream` / `opendir` 按系统代码页打开就会全部报 missing exemplar。0.2.3 改为 UTF-8 字节数组 + 宽字符 / `std::filesystem` 打开，并在编译期路径失效时从当前目录或可执行文件位置向上查找仓库根。这不是绕过检查，范本仍然要能解析、能跑。
+- **内部研究笔记 NEXT-PASSES.md（未随仓库公开）** 是 0.2.0 施工前的落地顺序。P0–P6 的主线机制已在 0.2.0–0.2.1 落地，通关与范本已在 0.2.2 落地。里面还没做成产品的主要是：无尽挑战 / 排行榜、隐藏成就（可不做墙）、DLC 采矿 / 水稻 / 竹子（只留接口，不挡主线）。
+- **Windows 测试找不到范本：** 0.2.2 在 `<本机仓库>` 运行 `build-win\codefarm_tests.exe` 时，CMake 把带「桌面」的绝对路径写进窄字符宏，MinGW 的 `ifstream` / `opendir` 按系统代码页打开就会全部报 missing exemplar。0.2.3 改为 UTF-8 字节数组 + 宽字符 / `std::filesystem` 打开，并在编译期路径失效时从当前目录或可执行文件位置向上查找仓库根。这不是绕过检查，范本仍然要能解析、能跑。
 - 玩家语言仍是逐步解锁的 C++ 子集，不是完整编译器。解释器按 tick 预算推进，避免死循环卡死进程。
 - GDExtension 目前编了 Linux 和 Windows 的 `template_debug`。若在 macOS 上打开工程，需要在对应平台重编，否则会因缺少 `CodefarmHost` 无法加载。
-- 同步到笔记本时：先拷到 `C:\Users\machang\agent-tools\`，再覆盖进 `D:\桌面\codefarm`，保留 `fonts`、`third_party`、`.godot`、`build-win`。大文件可拆成 3MB 分块，在 Windows 上用 `copy /b` 合并并核对 SHA256。
+- 同步到笔记本时：先拷到 `<中转目录>\`，再覆盖进 `<本机仓库>`，保留 `fonts`、`third_party`、`.godot`、`build-win`。大文件可拆成 3MB 分块，在 Windows 上用 `copy /b` 合并并核对 SHA256。
 
 ## 协作方式
 
-**唯一标准仓库是 `D:\桌面\codefarm`。** 开工前先读那里的 `VERSION` 和最新更新日志，并对齐工作副本。详细约定见 [SOURCE.md](SOURCE.md)。
+**唯一标准仓库是 `<本机仓库>`。** 开工前先读那里的 `VERSION` 和最新更新日志，并对齐工作副本。详细约定见 [SOURCE.md](SOURCE.md)。
 
-从现在起，写代码、改代码一律交给 **Codex CLI**（笔记本与云电脑均已用 ChatGPT 登录）。Codex Bot 负责派活、监督、验收测试、把结果写回桌面，并向畅汇报。若 OpenAI 被挡，停下来说明，不要换成别的方式交差，也不要另开一份长期分叉的工程。
+写代码、改代码默认交给 **Codex CLI**（笔记本与云电脑均已用 ChatGPT 登录）；畅直接指定其他 Agent 时由该 Agent 完成。Codex Bot 负责派活、监督、验收测试、把结果写回桌面，并向畅汇报。若 OpenAI 被挡，停下来说明，不要换成别的方式交差，也不要另开一份长期分叉的工程。
 
 学习计划交给「学习管家」，实验报告草稿交给「作业报告 Bot」，仓库改动或推送交给「GitHub Bot」（推送仍要等畅同意）。需要跨助手转手时走「总管」。
 
@@ -246,7 +247,7 @@ cmd.exe /c "set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-
 
 1. 桌面上的当前版本号，以及要改的是玩法、界面、测试还是文档。先让对方读 [SOURCE.md](SOURCE.md)、本概况和 [AGENTS.md](../AGENTS.md)。
 2. 再读 [CHANGELOG.md](../CHANGELOG.md)、[playthrough.md](playthrough.md)，以及最新的 `docs/review-*.md`。
-3. 明确「不要做的事」：不覆盖比自己更新的桌面仓库、不 `git init` / 不 push、不碰密码目录、不用测试后门顶替玩法、不改与任务无关的玩法、范本一步一个概念、未经同意不实施无尽模式。
+3. 明确「不要做的事」：不覆盖比自己更新的桌面仓库、不擅自推送 `main`、不碰凭据目录、不用测试后门顶替玩法、不改与任务无关的玩法、范本一步一个概念、未经同意不实施无尽模式。
 4. 给出复现步骤或失败日志（Windows 命令用 `cmd.exe /c '...'`）。
 5. 验收标准：相关测试全绿，三处 changelog 已写，版本号已按时规则 bump。
 6. 若改了扩展或 `game/`，提醒畅先完全退出 Godot 再打开；Godot 开着时不要覆盖脚本、场景或 DLL。

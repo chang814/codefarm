@@ -1,6 +1,6 @@
 # 0.2.8 技能树、提示与圆形伙伴验收
 
-日期：2026-11-11。本轮 Codex CLI 直接在唯一标准仓库 `D:\桌面\codefarm` 完成，按 `C:\Users\machang\agent-tools\codex-0.2.8-brief.md` 实施。开工为 0.2.7，交付为 **0.2.8**。已同步 VERSION、project.godot、main.gd、README、AGENTS、项目概况和三处更新日志。
+日期：2026-11-11。本轮 Codex CLI 直接在唯一标准仓库 `<本机仓库>` 完成，按 `<中转目录>\codex-0.2.8-brief.md` 实施。开工为 0.2.7，交付为 **0.2.8**。已同步 VERSION、project.godot、main.gd、README、AGENTS、项目概况和三处更新日志。
 
 ## 实现
 
@@ -33,14 +33,14 @@ Godot 使用 brief 指定的本机 `Godot_v4.7.2-stable_win64_console.exe`，版
 
 | 检查 | 结果与日志 |
 | --- | --- |
-| verify_headless.gd | VERIFY_OK；[日志](../build-win/verify_headless-028.log) |
-| verify_ui_motion.gd | UI_MOTION_OK；[日志](../build-win/verify_ui_motion-028.log) |
-| verify_smoke.gd | SMOKE_OK；[日志](../build-win/verify_smoke-028.log) |
-| verify_skill_drag.gd | SKILL_DRAG_OK；[日志](../build-win/verify_skill_drag-028.log) |
-| verify_editor.gd | EDITOR_OK；[日志](../build-win/verify_editor-028.log) |
-| verify_028.gd，新增专项 | REFINE_028_OK；[日志](../build-win/verify_028.log) |
-| 既有 codefarm_tests.exe | 1495 项通过，0 失败；[输出](../build-win/tests-028.txt) |
-| 既有 codefarm_playthrough.exe | 153 项检查通过，45 次购买，3124.48 秒游戏时间；[输出](../build-win/playthrough-028.txt) |
+| verify_headless.gd | VERIFY_OK；日志（`build-win/verify_headless-028.log`，本机记录，未入库） |
+| verify_ui_motion.gd | UI_MOTION_OK；日志（`build-win/verify_ui_motion-028.log`，本机记录，未入库） |
+| verify_smoke.gd | SMOKE_OK；日志（`build-win/verify_smoke-028.log`，本机记录，未入库） |
+| verify_skill_drag.gd | SKILL_DRAG_OK；日志（`build-win/verify_skill_drag-028.log`，本机记录，未入库） |
+| verify_editor.gd | EDITOR_OK；日志（`build-win/verify_editor-028.log`，本机记录，未入库） |
+| verify_028.gd，新增专项 | REFINE_028_OK；日志（`build-win/verify_028.log`，本机记录，未入库） |
+| 既有 codefarm_tests.exe | 1495 项通过，0 失败；输出（`build-win/tests-028.txt`，本机记录，未入库） |
+| 既有 codefarm_playthrough.exe | 153 项检查通过，45 次购买，3124.48 秒游戏时间；输出（`build-win/playthrough-028.txt`，本机记录，未入库） |
 
 拖动回归新增覆盖真实跨帧松手后的惯性、短时间收敛、滚轮光标锚定、农场相机不变、全貌显示最后一行、详情拦截背景缩放。原有双轴拖动、可买节点起拖不误购、微移点击、详情点击、区域外松手和失焦恢复检查保留。
 
@@ -66,15 +66,15 @@ Godot 使用 brief 指定的本机 `Godot_v4.7.2-stable_win64_console.exe`，版
 
 | 内容 | 路径 |
 | --- | --- |
-| 技能树全貌，100% 可读长图 | [ui-028-skills-full.png](../shots/ui-028-skills-full.png) |
-| 常规窗口全貌 | [ui-028-skills-overview.png](../shots/ui-028-skills-overview.png) |
-| 1280×800 技能树全貌 | [ui-028-skills-1280.png](../shots/ui-028-skills-1280.png) |
-| 常规大小的技能树 | [ui-028-skills.png](../shots/ui-028-skills.png) |
-| 默认提示窗中的加速重点 | [ui-028-hint-default.png](../shots/ui-028-hint-default.png) |
-| 加速提示与完整范本区域 | [ui-028-hint-speed.png](../shots/ui-028-hint-speed.png) |
-| 条件提示、代码重点和载入说明 | [ui-028-hint-condition.png](../shots/ui-028-hint-condition.png) |
-| 圆形 bot 正面、固定竖眼 | [ui-028-bot-front.png](../shots/ui-028-bot-front.png) |
-| 失败横扫中的固定眼睛 | [ui-028-bot-miss.png](../shots/ui-028-bot-miss.png) |
+| 技能树全貌，100% 可读长图 | ui-028-skills-full.png（`shots/ui-028-skills-full.png`，本机记录，未入库） |
+| 常规窗口全貌 | ui-028-skills-overview.png（`shots/ui-028-skills-overview.png`，本机记录，未入库） |
+| 1280×800 技能树全貌 | ui-028-skills-1280.png（`shots/ui-028-skills-1280.png`，本机记录，未入库） |
+| 常规大小的技能树 | ui-028-skills.png（`shots/ui-028-skills.png`，本机记录，未入库） |
+| 默认提示窗中的加速重点 | ui-028-hint-default.png（`shots/ui-028-hint-default.png`，本机记录，未入库） |
+| 加速提示与完整范本区域 | ui-028-hint-speed.png（`shots/ui-028-hint-speed.png`，本机记录，未入库） |
+| 条件提示、代码重点和载入说明 | ui-028-hint-condition.png（`shots/ui-028-hint-condition.png`，本机记录，未入库） |
+| 圆形 bot 正面、固定竖眼 | ui-028-bot-front.png（`shots/ui-028-bot-front.png`，本机记录，未入库） |
+| 失败横扫中的固定眼睛 | ui-028-bot-miss.png（`shots/ui-028-bot-miss.png`，本机记录，未入库） |
 
 全貌长图为专项脚本在 1440×2300 渲染视口中展开面板后，按实际 100% 节点尺寸捕获；不是普通 900px 高窗口的默认布局。常规全貌图使用实际「全貌」功能，缩小后的文字主要用于定位，滚轮放大后阅读。正面图直接对准当前 bot，临时隐藏植物以清楚展示圆形轮廓；没有修改游戏默认镜头或删除作物。
 
@@ -85,14 +85,14 @@ Godot 使用 brief 指定的本机 `Godot_v4.7.2-stable_win64_console.exe`，版
 先确认用户的 Godot 已完全退出；不要强杀。以下命令从唯一标准仓库运行，日志均在仓库内。
 
 ```powershell
-$godotExe = 'D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe'
+$godotExe = '<Godot 目录>\Godot_v4.7.2-stable_win64_console.exe'
 & $godotExe --headless --path game --script scripts/verify_headless.gd --log-file 'D:/桌面/codefarm/build-win/verify_headless-028.log'
 foreach ($name in 'verify_ui_motion','verify_smoke','verify_skill_drag','verify_editor','verify_028') {
     & $godotExe --path game --script ('scripts/' + $name + '.gd')
     if ($LASTEXITCODE -ne 0) { throw ($name + ' failed') }
 }
-cmd.exe /c 'set PATH=D:\mingw64\bin;%PATH% && build-win\codefarm_tests.exe'
-cmd.exe /c 'set PATH=D:\mingw64\bin;%PATH% && build-win\codefarm_playthrough.exe'
+cmd.exe /c 'set PATH=<MinGW>\bin;%PATH% && build-win\codefarm_tests.exe'
+cmd.exe /c 'set PATH=<MinGW>\bin;%PATH% && build-win\codefarm_playthrough.exe'
 ```
 
 ## 未做事项与边界

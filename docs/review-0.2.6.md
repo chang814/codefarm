@@ -1,6 +1,6 @@
 # 0.2.6 收获节奏与窗口交互验收
 
-日期：2026-11-11。直接修改唯一标准仓库 `D:\桌面\codefarm`，由当前 Codex CLI 会话实现。版本与三处更新日志均同步至 0.2.6。
+日期：2026-11-11。直接修改唯一标准仓库 `<本机仓库>`，由当前 Codex CLI 会话实现。版本与三处更新日志均同步至 0.2.6。
 
 ## 改了什么
 
@@ -21,11 +21,11 @@
 | 条件教学的同预算对比 | 复制正常游玩获得的同一个世界状态，各运行 30 秒：盲收 20 干草，条件循环 30 干草，提升 50% |
 | 解锁门槛 | 购买条件前，单独调用 can_harvest 和使用 if 均被拒绝 |
 | 收获事件与时序 | 加速、能量下失败固定 400；成功仍加速；查询 1；生长 400；失败中成熟不发成功脉冲 |
-| 从仓库外运行测试 | 在 `C:\Users\machang\agent-tools` 启动同一测试 EXE，也全部通过 |
+| 从仓库外运行测试 | 在 `<中转目录>` 启动同一测试 EXE，也全部通过 |
 | Godot 核心 | `VERIFY_OK` |
 | Godot 真实 Vulkan 渲染 | `UI_MOTION_OK`、`SMOKE_OK`、`SKILL_DRAG_OK`、`EDITOR_OK` |
 
-Godot 使用本机 `D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`，版本 `4.7.2.stable.official.ed1daf0bf`。无头仅用于核心检查，界面检查使用 Windows Vulkan / Forward+ 实际渲染。
+Godot 使用本机 `<Godot 目录>\Godot_v4.7.2-stable_win64_console.exe`，版本 `4.7.2.stable.official.ed1daf0bf`。无头仅用于核心检查，界面检查使用 Windows Vulkan / Forward+ 实际渲染。
 
 ### 按钮与交互覆盖
 
@@ -46,21 +46,21 @@ Godot 使用本机 `D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_
 ## 构建与复验
 
 ```powershell
-cmd.exe /c 'set PATH=D:\mingw64\bin;D:\bin\win64\cmake\bin;%PATH% && cd /d D:\桌面\codefarm\build-win && cmake --build . -j 8'
-cmd.exe /c 'set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-win\codefarm_tests.exe'
-cmd.exe /c 'set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-win\codefarm_playthrough.exe'
-$godotExe = 'D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe'
+cmd.exe /c 'set PATH=<MinGW>\bin;<CMake>\bin;%PATH% && cd /d <本机仓库>\build-win && cmake --build . -j 8'
+cmd.exe /c 'set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\codefarm_tests.exe'
+cmd.exe /c 'set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\codefarm_playthrough.exe'
+$godotExe = '<Godot 目录>\Godot_v4.7.2-stable_win64_console.exe'
 & $godotExe --headless --path game --script scripts/verify_headless.gd
 foreach ($name in 'verify_ui_motion','verify_smoke','verify_skill_drag','verify_editor') {
     & $godotExe --path game --script ('scripts/' + $name + '.gd')
 }
 ```
 
-CMake 直接把新扩展 DLL 输出到 `game/bin`。构建前确认 Godot 已完全退出；三个 MinGW 运行库也已复制进该目录，并与 `D:\mingw64\bin` 的 SHA256 逐项核对一致。扩展 DLL SHA256：`F2645CE87F9B22BB26B11AD4C1027A39C4B3658649242640600BFAFD6DA2D6D6`。
+CMake 直接把新扩展 DLL 输出到 `game/bin`。构建前确认 Godot 已完全退出；三个 MinGW 运行库也已复制进该目录，并与 `<MinGW>\bin` 的 SHA256 逐项核对一致。扩展 DLL SHA256：`F2645CE87F9B22BB26B11AD4C1027A39C4B3658649242640600BFAFD6DA2D6D6`。
 
 Windows 中文路径问题从正常构建入口修复：CMake 生成 UTF-8 字节数组，测试用宽字符路径/API 打开文件，并可从工作目录或 EXE 回溯源码根目录。本次没有跳过范本或使用旧的 audit EXE。
 
-原始测试记录在 `build-win/tests-026.txt`、`build-win/playthrough-026.txt`；Godot 日志在 `C:\Users\machang\agent-tools\codefarm-026/verify_*.log`。截图：修改前 [ui-026-before](../shots/ui-026-before.png)，修改后 [默认界面](../shots/ui-026-default.png)、[最大化中间帧](../shots/ui-026-max-mid.png)、[最大化终点](../shots/ui-026-max.png)、[挥空](../shots/ui-026-miss.png)、[设置](../shots/ui-026-settings.png)。
+原始测试记录在 `build-win/tests-026.txt`、`build-win/playthrough-026.txt`；Godot 日志在 `<中转目录>\codefarm-026/verify_*.log`。截图：修改前 ui-026-before（`shots/ui-026-before.png`，本机记录，未入库），修改后 默认界面（`shots/ui-026-default.png`，本机记录，未入库）、最大化中间帧（`shots/ui-026-max-mid.png`，本机记录，未入库）、最大化终点（`shots/ui-026-max.png`，本机记录，未入库）、挥空（`shots/ui-026-miss.png`，本机记录，未入库）、设置（`shots/ui-026-settings.png`，本机记录，未入库）。
 
 ## 未做与边界
 

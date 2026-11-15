@@ -1,13 +1,13 @@
 # AGENTS.md
 
-Instructions for coding agents working on **Codefarm** (Codex CLI, Codex Bot, Cursor, and others). Humans should start with [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md) (Chinese overview). Current version: **0.2.11**. Canonical tree: `D:\桌面\codefarm` (see [docs/SOURCE.md](docs/SOURCE.md)).
+Instructions for coding agents working on **Codefarm** (Codex CLI, Codex Bot, Cursor, and others). Humans should start with [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md) (Chinese overview). Current version: **0.2.11**. Canonical tree: the maintainer's local checkout (see [docs/SOURCE.md](docs/SOURCE.md)); GitHub `chang814/codefarm` is the public mirror.
 
-This is a C++ take on *The Farmer Was Replaced*, rendered in Godot 4.7.2. Player programs must look like standard C++ (`#include <bits/stdc++.h>`, `using namespace std;`, `int main()`). The UI is Chinese. The repo must not use or ship any original-game art, music, or trademarks.
+Codefarm is an original programming-farm game: players automate a farm with C++ programs, rendered in Godot 4.7.2. Player programs must look like standard C++ (`#include <bits/stdc++.h>`, `using namespace std;`, `int main()`). The UI is Chinese. The repo must not use or ship any third-party game's art, music, names, or trademarks, and docs should describe Codefarm on its own terms rather than as a version of another game.
 
 
 ## Source of truth
 
-The only canonical tree is **`D:\桌面\codefarm`**. `/workspace/codefarm` is a working copy. Sync from the desktop before you start, and write back when you finish. If the two copies disagree, the desktop wins. Never overwrite the desktop with an older cloud zip. `C:\Users\machang\agent-tools\` is for transfer only.
+The only canonical tree is the maintainer's local checkout (`<本机仓库>` below). 云端工作副本 is a working copy. Sync from the desktop before you start, and write back when you finish. If the two copies disagree, the desktop wins. Never overwrite the desktop with an older cloud zip. `<中转目录>\` is for transfer only.
 
 Read [docs/SOURCE.md](docs/SOURCE.md) first. Record every change in `VERSION` and all three changelogs, as below. Direction comes from `docs/PROJECT-OVERVIEW.md`, `docs/playthrough.md`, `docs/skill-tree-design.md`, `docs/endless-design.md` (plan only, do not implement until 畅 asks), and the latest `docs/review-*.md`.
 
@@ -53,13 +53,13 @@ xvfb-run -a -s "-screen 0 1440x900x24" ./tools/Godot_v4.7.2-stable_linux.x86_64 
 
 Open the project with Godot **4.7.x** on the `game/` directory.
 
-### Windows (畅's laptop: `D:\桌面\codefarm`)
+### Windows (畅's laptop: `<本机仓库>`)
 
-CMake is `D:\bin\win64\cmake\bin\cmake.exe`. The compiler is `D:\mingw64`. Incremental builds go in `build-win`. **Do not write `\"` in PowerShell**; use `cmd.exe /c '...'`.
+CMake is `<CMake>\bin\cmake.exe`. The compiler is `<MinGW>`. Incremental builds go in `build-win`. **Do not write `\"` in PowerShell**; use `cmd.exe /c '...'`.
 
 ```bat
-cmd.exe /c "set PATH=D:\mingw64\bin;D:\bin\win64\cmake\bin;%PATH% && cd /d D:\桌面\codefarm\build-win && cmake --build ."
-cmd.exe /c "set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-win\codefarm_tests.exe"
+cmd.exe /c "set PATH=<MinGW>\bin;<CMake>\bin;%PATH% && cd /d <本机仓库>\build-win && cmake --build ."
+cmd.exe /c "set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\codefarm_tests.exe"
 ```
 
 Copy `codefarm.windows.template_debug.x86_64.dll` plus `libgcc_s_seh-1.dll`, `libstdc++-6.dll`, and `libwinpthread-1.dll` into `game\bin`.
@@ -68,7 +68,7 @@ Copy `codefarm.windows.template_debug.x86_64.dll` plus `libgcc_s_seh-1.dll`, `li
 
 ### Tests that must stay green
 
-- `codefarm_tests` (1167 checks on Linux in 0.2.2; do not drop any). This includes:
+- `codefarm_tests` (1844 checks as of 0.2.11; the count must never drop). This includes:
   - `test_full_playthrough`: clears the tree from a fresh save using only player actions (buy, load an exemplar, run). No `grant_for_test` or other backdoors.
   - `test_every_node_has_exemplar`: every skill node has an exemplar that parses and runs.
 - `VERIFY_OK` from `verify_headless.gd`.
@@ -94,7 +94,7 @@ Update all of these together:
 - **Godot 4.7 `CodeEdit` property names.** Use the 4.7 names (for example `gutters_draw_line_numbers`, `caret_blink`). Do not invent 3.x / 4.0 aliases.
 - **Windows shells:** no `\"` in PowerShell. Prefer `cmd.exe /c '...'`.
 - **Do not force-kill Godot.** Ask the user to quit it fully, then reopen.
-- **Exemplar paths in tests:** do not bake a narrow-char absolute path that contains non-ASCII (e.g. `D:\桌面\...`) into `-D` macros. CMake writes UTF-8 byte arrays into `codefarm_paths.hpp`; `tests/playthrough.hpp` opens them with `std::filesystem` and Win32 wide APIs, and can also walk up from the cwd or the executable to the repo root. Keep that behavior if you touch test I/O.
+- **Exemplar paths in tests:** do not bake a narrow-char absolute path that contains non-ASCII (e.g. a Windows path containing `桌面`) into `-D` macros. CMake writes UTF-8 byte arrays into `codefarm_paths.hpp`; `tests/playthrough.hpp` opens them with `std::filesystem` and Win32 wide APIs, and can also walk up from the cwd or the executable to the repo root. Keep that behavior if you touch test I/O.
 - C++20, `-Wall -Wextra -Wpedantic`, no Godot types inside `sim/`.
 - Player-facing strings are Chinese. Icon labels stay one word.
 - Data-driven costs, growth, and yields belong in `types.hpp` (or a clear table), not as scattered magic numbers.
@@ -111,8 +111,9 @@ Update all of these together:
 
 ## Do not
 
-- Do not `git init` or push to GitHub until 畅 explicitly approves a playable build.
-- Do not touch `D:\桌面\一些重要的密码agent勿碰`.
+- Push only to your own task branch (`claude/`, `codex/`, `chore/` …). Merging into `main`, releases, and repository settings need 畅's explicit approval.
+- Do not open or touch the maintainer's private credentials folder on the laptop.
+- Keep local paths, usernames, and machine details out of committed files; use placeholders such as `<本机仓库>`.
 - Do not type passwords, OTPs, or API keys.
 - Do not use test backdoors (`grant_for_test`, `set_item`, `set_grass_mature`, …) as a substitute for real play.
 - Do not commit secrets, student IDs, phone numbers, or local env files.
@@ -121,10 +122,10 @@ Update all of these together:
 
 ## Collaboration
 
-The canonical repo is `D:\桌面\codefarm`. Before a session, read `VERSION` and the latest changelog there. After a session, the desktop must have the new files.
+The canonical repo is `<本机仓库>`. Before a session, read `VERSION` and the latest changelog there. After a session, the desktop must have the new files.
 
-Code is written by **Codex CLI** (ChatGPT login on both the laptop and the box). Codex Bot briefs Codex, supervises, runs the tests, and reports to 畅. If OpenAI is blocked, stop and say so; do not quietly switch tools. Do not start a second long-lived tree that drifts from the desktop.
+Code is written by **Codex CLI** (ChatGPT login on both the laptop and the box) unless 畅 assigns the task to another agent directly. Codex Bot briefs Codex, supervises, runs the tests, and reports to 畅. If OpenAI is blocked, stop and say so; do not quietly switch tools. Do not start a second long-lived tree that drifts from the desktop.
 
 Handoff: point at this file, `docs/SOURCE.md`, and `docs/PROJECT-OVERVIEW.md`. State the desktop version and the intended change, attach commands / failing logs, and require green tests plus the three changelog entries.
 
-Syncing: copy into `C:\Users\machang\agent-tools\` first, then overlay onto `D:\桌面\codefarm` while keeping `fonts`, `third_party`, `.godot`, and `build-win`. Prefer small diffs; split large files into 3MB chunks and join with `copy /b`, then check SHA256. Do not overwrite the desktop while Godot is open.
+Syncing: copy into `<中转目录>\` first, then overlay onto `<本机仓库>` while keeping `fonts`, `third_party`, `.godot`, and `build-win`. Prefer small diffs; split large files into 3MB chunks and join with `copy /b`, then check SHA256. Do not overwrite the desktop while Godot is open.

@@ -1,6 +1,6 @@
 # 0.2.7 幼苗重置与条件教学验收
 
-日期：2026-11-11。当前 Codex CLI 会话直接在唯一标准仓库 `D:\桌面\codefarm` 实现。开工版本为 0.2.6，已同步 VERSION、project.godot、main.gd、README、AGENTS 和三处更新日志至 0.2.7。
+日期：2026-11-11。当前 Codex CLI 会话直接在唯一标准仓库 `<本机仓库>` 实现。开工版本为 0.2.6，已同步 VERSION、project.godot、main.gd、README、AGENTS 和三处更新日志至 0.2.7。
 
 ## 规则与实现
 
@@ -35,13 +35,13 @@
 | Godot Vulkan 真实渲染 | UI_MOTION_OK、SMOKE_OK、SKILL_DRAG_OK、EDITOR_OK |
 | Godot smoke 新增回归 | 加速后连续 20 秒新增 0 干草；停止、等熟单收后正常购买条件；条件循环 30 秒新增 30 干草 |
 
-Godot 为本机 `D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`，版本 `4.7.2.stable.official.ed1daf0bf`。核心检查使用 headless，其余使用 Windows Vulkan / Forward+ 与实际渲染。UI 脚本注入鼠标事件、触发真实按钮信号并检查场景状态，不代表人工试玩。
+Godot 为本机 `<Godot 目录>\Godot_v4.7.2-stable_win64_console.exe`，版本 `4.7.2.stable.official.ed1daf0bf`。核心检查使用 headless，其余使用 Windows Vulkan / Forward+ 与实际渲染。UI 脚本注入鼠标事件、触发真实按钮信号并检查场景状态，不代表人工试玩。
 
-原始结果：`build-win/build-027.txt`、`build-win/tests-027.txt`、`build-win/playthrough-027.txt`。Godot 日志：`C:\Users\machang\agent-tools\codefarm-027\verify_*.log`。截图包括 [默认界面](../shots/ui-027-default.png)、[空挥](../shots/ui-027-miss.png)、[设置](../shots/ui-027-settings.png)、[最大化中间帧](../shots/ui-027-max-mid.png)。
+原始结果：`build-win/build-027.txt`、`build-win/tests-027.txt`、`build-win/playthrough-027.txt`。Godot 日志：`<中转目录>\codefarm-027\verify_*.log`。截图包括 默认界面（`shots/ui-027-default.png`，本机记录，未入库）、空挥（`shots/ui-027-miss.png`，本机记录，未入库）、设置（`shots/ui-027-settings.png`，本机记录，未入库）、最大化中间帧（`shots/ui-027-max-mid.png`，本机记录，未入库）。
 
 ## DLL 与运行库
 
-构建与复制之前已确认 Godot 完全退出；没有强杀 Godot。扩展由 CMake 直接重编进 `game/bin`。三个运行库已从 `D:\mingw64\bin` 复制到 `game/bin`，逐项核对源与目标 SHA256 一致。
+构建与复制之前已确认 Godot 完全退出；没有强杀 Godot。扩展由 CMake 直接重编进 `game/bin`。三个运行库已从 `<MinGW>\bin` 复制到 `game/bin`，逐项核对源与目标 SHA256 一致。
 
 | game/bin 文件 | SHA256 |
 | --- | --- |
@@ -55,10 +55,10 @@ Godot 为本机 `D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win
 先完全退出 Godot，再构建；不要在旧编辑器中依赖 DLL 热重载。
 
 ```powershell
-cmd.exe /c 'set PATH=D:\mingw64\bin;D:\bin\win64\cmake\bin;%PATH% && cd /d D:\桌面\codefarm\build-win && cmake --build . -j 8'
-cmd.exe /c 'set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-win\codefarm_tests.exe'
-cmd.exe /c 'set PATH=D:\mingw64\bin;%PATH% && cd /d D:\桌面\codefarm && build-win\codefarm_playthrough.exe'
-$godotExe = 'D:\桌面\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe'
+cmd.exe /c 'set PATH=<MinGW>\bin;<CMake>\bin;%PATH% && cd /d <本机仓库>\build-win && cmake --build . -j 8'
+cmd.exe /c 'set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\codefarm_tests.exe'
+cmd.exe /c 'set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\codefarm_playthrough.exe'
+$godotExe = '<Godot 目录>\Godot_v4.7.2-stable_win64_console.exe'
 & $godotExe --headless --path game --script scripts/verify_headless.gd
 foreach ($name in 'verify_ui_motion','verify_smoke','verify_skill_drag','verify_editor') {
     & $godotExe --path game --script ('scripts/' + $name + '.gd')
