@@ -17,6 +17,8 @@ const FarmUiKit := preload("res://scripts/farm_ui_kit.gd")
 const FarmEditorAssist := preload("res://scripts/farm_editor_assist.gd")
 const FarmCodeFiles := preload("res://scripts/farm_code_files.gd")
 const FarmSkillTree := preload("res://scripts/farm_skill_tree.gd")
+const FarmCollectFx := preload("res://scripts/farm_collect_fx.gd")
+const FarmLayout := preload("res://scripts/farm_layout.gd")
 
 const VERSION := "0.2.12"
 const STARTER := """#include <bits/stdc++.h>
@@ -120,6 +122,10 @@ var ui: FarmUiKit
 var editor_assist: FarmEditorAssist
 var code_files: FarmCodeFiles
 var skill_tree: FarmSkillTree
+var collect_fx: FarmCollectFx
+# Top-bar counters by item key: {"row", "kind", "color"}; and last seen counts.
+var _counters: Dictionary = {}
+var _counter_seen: Dictionary = {}
 
 @export var persistence_enabled := true
 @export var start_on_farm := false  # Explicit scene fixture option for isolated UI tests.
@@ -156,6 +162,7 @@ func _ready() -> void:
 	grass_placeholder.visible = false
 	_setup_ui_kit()
 	_build_ui()
+	_setup_collect_fx()
 	editor_assist.setup_highlighter([hint_code, hint_header_code])
 	editor_assist.enable_completion()
 	field.init()
@@ -568,11 +575,13 @@ func _build_ui() -> void:
 	var hay_chip := ui.resource_chip(FarmIcon.Kind.HAY, "HayLabel", FarmIcon.item_color("hay", FarmPalette.GOLD_SOFT))
 	hay_chip["row"].tooltip_text = "干草余额"
 	hay_label = hay_chip["label"]
+	_counters["hay"] = {"row": hay_chip["row"], "kind": FarmIcon.Kind.HAY, "color": FarmIcon.item_color("hay", FarmPalette.GOLD_SOFT)}
 	resources.add_child(hay_chip["row"])
 
 	var wood_chip := ui.resource_chip(FarmIcon.Kind.WOOD, "WoodLabel", FarmIcon.item_color("wood", FarmPalette.GOLD_SOFT))
 	wood_chip["row"].tooltip_text = "木头"
 	wood_wrap = wood_chip["row"]
+	_counters["wood"] = {"row": wood_chip["row"], "kind": FarmIcon.Kind.WOOD, "color": FarmIcon.item_color("wood", FarmPalette.GOLD_SOFT)}
 	wood_label = wood_chip["label"]
 	wood_wrap.visible = false
 	resources.add_child(wood_wrap)
@@ -594,6 +603,7 @@ func _build_ui() -> void:
 		chip["row"].visible = false
 		resources.add_child(chip["row"])
 		_item_chips[spec[0]] = chip
+		_counters[spec[0]] = {"row": chip["row"], "kind": FarmIcon.kind_from_item(spec[0]), "color": FarmIcon.item_color(spec[0], FarmPalette.GOLD_SOFT)}
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1306,6 +1316,7 @@ func _update_hay() -> void:
 			elif key == "bone":
 				show = show or host.is_unlocked("dino")
 			chip["row"].visible = show
+	_counter_seen = _counter_values()
 
 
 func _update_buttons() -> void:
@@ -1949,28 +1960,66 @@ func _on_harvested() -> void:
 	_sfx("harvest")
 	var key := Vector2i(host.get_drone_x(), host.get_drone_y())
 	field.flatten_after_harvest(key)
-	bot.play_harvest_success(key, host.last_harvested() == "Bush")
+	var kind: String = host.last_harvested()
+	bot.play_harvest_success(key, kind == "Bush" or kind == "Tree")
+	_fly_gains_from(key)
+
+
+func _setup_collect_fx() -> void:
+	collect_fx = FarmCollectFx.new()
+	ui_root.add_child(collect_fx)
+	collect_fx.set_font(ui.font_ui_bold)
+
+
+## Current amount behind every top-bar counter.
+func _counter_values() -> Dictionary:
+	var values := {"hay": int(host.get_hay()), "wood": int(host.get_wood())}
+	for item in _item_chips.keys():
+		values[item] = int(host.get_item(item))
+	return values
+
+
+## Whatever the harvest just added flies from the tile to its counter.
+func _fly_gains_from(tile: Vector2i) -> void:
+	if collect_fx == null or _counter_seen.is_empty():
+		return
+	var at: Vector3 = field.tile_world(tile.x, tile.y) + Vector3(0, FarmLayout.TILE_HEIGHT + 0.25, 0)
+	var from := camera.unproject_position(farm_root.to_global(at))
+	var now := _counter_values()
+	for item in now.keys():
+		var gain := int(now[item]) - int(_counter_seen.get(item, 0))
+		if gain > 0 and _counters.has(item):
+			var counter: Dictionary = _counters[item]
+			collect_fx.collect(from, counter["row"], counter["kind"], counter["color"], gain)
 
 
 func _soften_lights() -> void:
+	# A warm, hazy afternoon: gentle sun, light shadows, bright even ambient.
 	var sun := get_node_or_null("Sun") as DirectionalLight3D
 	if sun:
-		sun.light_energy = 0.88
-		sun.light_color = Color(1.0, 0.93, 0.82, 1)
-		sun.shadow_opacity = 0.56
-		sun.shadow_blur = 2.4
-		sun.light_angular_distance = 2.5
+		sun.light_energy = 0.74
+		sun.light_color = Color(1.0, 0.95, 0.86, 1)
+		sun.shadow_opacity = 0.40
+		sun.shadow_blur = 3.2
+		sun.light_angular_distance = 3.5
 	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if env_node and env_node.environment:
 		var env: Environment = env_node.environment
-		env.ambient_light_energy = 0.34
-		env.ambient_light_color = Color(0.90, 0.84, 0.74, 1)
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.ambient_light_energy = 0.46
+		env.ambient_light_color = Color(0.93, 0.95, 0.90, 1)
+		env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+		if env.sky and env.sky.sky_material is ProceduralSkyMaterial:
+			var sky := env.sky.sky_material as ProceduralSkyMaterial
+			sky.sky_top_color = Color(0.62, 0.82, 0.93, 1)
+			sky.sky_horizon_color = Color(0.99, 0.95, 0.84, 1)
+			sky.ground_horizon_color = Color(0.99, 0.95, 0.84, 1)
+			sky.ground_bottom_color = FarmPalette.MEADOW_C
 	if get_node_or_null("FillLight") == null:
 		var fill := DirectionalLight3D.new()
 		fill.name = "FillLight"
-		fill.light_energy = 0.22
-		fill.light_color = Color(0.80, 0.86, 0.88, 1)
+		fill.light_energy = 0.12
+		fill.light_color = Color(0.86, 0.92, 0.98, 1)
 		fill.shadow_enabled = false
 		fill.rotation_degrees = Vector3(-25, 130, 0)
 		add_child(fill)
-

@@ -5,6 +5,8 @@ extends Node3D
 ## so the project ships no models or textures. Decoration never enters the
 ## field: it starts outside `inner` and is laid out again when the field grows.
 
+const FarmPalette := preload("res://scripts/farm_palette.gd")
+
 const SEED := 20261114
 const REACH := 13.0
 
@@ -46,7 +48,7 @@ void fragment() {
 	c = mix(c, tone_c, light * 0.45);
 	// Slow cloud shadows drifting across the meadow.
 	float cloud = smoothstep(0.42, 0.80, fbm(p * 0.06 + TIME * vec2(0.035, 0.02)));
-	c *= 1.0 - 0.12 * cloud;
+	c *= 1.0 - 0.09 * cloud;
 	ALBEDO = c;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
@@ -68,7 +70,8 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = COLOR.rgb;
+	// Instance colours arrive as sRGB values; shade them as such.
+	ALBEDO = pow(COLOR.rgb, vec3(2.2));
 	ROUGHNESS = 0.92;
 	SPECULAR = 0.0;
 }
@@ -86,6 +89,9 @@ func dress_meadow(meadow: MeshInstance3D) -> void:
 	shader.code = MEADOW_SHADER
 	var mat := ShaderMaterial.new()
 	mat.shader = shader
+	mat.set_shader_parameter("tone_a", FarmPalette.MEADOW_A)
+	mat.set_shader_parameter("tone_b", FarmPalette.MEADOW_B)
+	mat.set_shader_parameter("tone_c", FarmPalette.MEADOW_C)
 	meadow.material_override = mat
 
 
@@ -105,7 +111,7 @@ func layout(inner: float) -> void:
 	rng.seed = SEED
 
 	var tuft_mat := _sway_material(0.10, 1.0)
-	var greens := [Color(0.27, 0.36, 0.17), Color(0.23, 0.33, 0.16), Color(0.33, 0.39, 0.19), Color(0.26, 0.31, 0.18)]
+	var greens := [Color(0.48, 0.63, 0.44), Color(0.45, 0.60, 0.42), Color(0.55, 0.68, 0.46), Color(0.50, 0.62, 0.46)]
 	var tufts: Array = []
 	for i in 170:
 		var p := _ring_point(rng, 0.35, REACH, 1.6)
@@ -113,14 +119,14 @@ func layout(inner: float) -> void:
 		tufts.append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.3), s)), p), greens[rng.randi() % greens.size()]])
 	_scatter("Tufts", _tuft_mesh(), tuft_mat, tufts, false)
 
-	var petals := [Color(0.78, 0.74, 0.58), Color(0.76, 0.58, 0.20), Color(0.72, 0.42, 0.40), Color(0.52, 0.46, 0.66)]
+	var petals := [Color(0.98, 0.96, 0.90), Color(0.96, 0.86, 0.58), Color(0.94, 0.76, 0.76), Color(0.80, 0.76, 0.90), Color(0.76, 0.86, 0.92)]
 	var head := SphereMesh.new()
-	head.radius = 0.05
-	head.height = 0.07
+	head.radius = 0.06
+	head.height = 0.08
 	head.radial_segments = 10
 	head.rings = 5
 	var flowers: Array = []
-	for i in 34:
+	for i in 52:
 		# Flowers come in small drifts of one colour rather than evenly.
 		var centre := _ring_point(rng, 0.5, REACH - 2.0, 1.3)
 		var colour: Color = petals[rng.randi() % petals.size()]
@@ -140,7 +146,7 @@ func layout(inner: float) -> void:
 		var p := _ring_point(rng, 0.3, REACH, 1.0)
 		var s := rng.randf_range(0.6, 1.7)
 		var tone := rng.randf_range(0.0, 1.0)
-		stones.append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s * rng.randf_range(1.0, 1.6), s * 0.55, s)), p), Color(0.66, 0.63, 0.55).lerp(Color(0.56, 0.56, 0.52), tone)])
+		stones.append([Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s * rng.randf_range(1.0, 1.6), s * 0.55, s)), p), Color(0.90, 0.88, 0.82).lerp(Color(0.80, 0.82, 0.82), tone)])
 	_scatter("Stones", stone, _plain_material(), stones, true)
 
 	var trunk := CylinderMesh.new()
@@ -153,14 +159,14 @@ func layout(inner: float) -> void:
 	crown.height = 1.0
 	crown.radial_segments = 20
 	crown.rings = 10
-	var leaves := [Color(0.27, 0.39, 0.19), Color(0.32, 0.43, 0.20), Color(0.23, 0.35, 0.19), Color(0.37, 0.44, 0.21)]
+	var leaves := [FarmPalette.LEAF, FarmPalette.LEAF_LIGHT, FarmPalette.LEAF_DEEP, Color(0.58, 0.74, 0.54)]
 	var trunks: Array = []
 	var crowns: Array = []
 	for i in 13:
 		# Trees keep well back so they never stand between camera and field.
 		var p := _ring_point(rng, 3.0, REACH, 0.8)
 		var s := rng.randf_range(0.8, 1.35)
-		trunks.append([Transform3D(Basis().scaled(Vector3(s, s, s)), p + Vector3(0, 0.25 * s, 0)), Color(0.50, 0.38, 0.28)])
+		trunks.append([Transform3D(Basis().scaled(Vector3(s, s, s)), p + Vector3(0, 0.25 * s, 0)), FarmPalette.WOOD])
 		var colour: Color = leaves[rng.randi() % leaves.size()]
 		crowns.append([Transform3D(Basis().scaled(Vector3(s, s * 0.92, s)), p + Vector3(0, 0.82 * s, 0)), colour])
 		if rng.randf() < 0.6:
@@ -264,6 +270,7 @@ func _sway_material(amp: float, flat_light: float) -> ShaderMaterial:
 func _plain_material() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true
 	mat.roughness = 1.0
 	return mat
 
