@@ -9,12 +9,14 @@ const FarmSkillData := preload("res://scripts/skill_data.gd")
 const FarmSave := preload("res://scripts/farm_save.gd")
 const FarmAudio := preload("res://scripts/farm_audio.gd")
 const FarmScenery := preload("res://scripts/farm_scenery.gd")
+const FarmLayout := preload("res://scripts/farm_layout.gd")
+const FarmCameraRig := preload("res://scripts/farm_camera_rig.gd")
 
 const VERSION := "0.2.11"
-const TILE_SPACING := 1.36
-const TILE_HEIGHT := 0.34
-const TILE_WIDTH := 1.12
-const STUBBLE := 0.16
+const TILE_SPACING := FarmLayout.TILE_SPACING
+const TILE_HEIGHT := FarmLayout.TILE_HEIGHT
+const TILE_WIDTH := FarmLayout.TILE_WIDTH
+const STUBBLE := FarmLayout.STUBBLE
 const STARTER := """#include <bits/stdc++.h>
 using namespace std;
 
@@ -319,11 +321,6 @@ var _shown_size: int = 1
 var _drone_from := Vector3.ZERO
 var _drone_to := Vector3.ZERO
 var _drone_move_t: float = 1.0
-var _cam_from_pos := Vector3.ZERO
-var _cam_to_pos := Vector3.ZERO
-var _cam_from_size: float = 3.85
-var _cam_to_size: float = 3.85
-var _cam_t: float = 1.0
 var _pending_paren_adjust: bool = false
 var _completion_prefix: String = ""
 var _blade_mats: Array[StandardMaterial3D] = []
@@ -388,41 +385,7 @@ var _bot_arm_l: Node3D
 var _bot_arm_r: Node3D
 var _bot_eye_l: Node3D
 var _bot_eye_r: Node3D
-var _cam_yaw: float = 0.71
-var _cam_pitch: float = 0.70
-var _cam_zoom: float = 4.15
-var _cam_target := Vector3(0, 0.2, 0)
-var _cam_yaw_s: float = 0.71
-var _cam_pitch_s: float = 0.70
-var _cam_zoom_s: float = 4.15
-var _cam_target_s := Vector3(0, 0.2, 0)
-var _cam_vel := Vector3.ZERO
-var _cam_pos := Vector3(2.55, 3.55, 2.95)
-var _cam_pos_s := Vector3(2.55, 3.55, 2.95)
-var _cam_orbiting := false
-var _cam_panning := false
-# Left-drag panning: press on the farm, move past a small threshold, and the
-# grabbed ground point stays under the cursor; a short glide follows release.
-const LEFT_DRAG_THRESHOLD := 6.0
-const PAN_GLIDE_DECAY := 9.0
-const PAN_GLIDE_MAX_SPEED := 14.0
-var _left_pending := false
-var _left_dragging := false
-var _left_press_pos := Vector2.ZERO
-var _left_last_pos := Vector2.ZERO
-var _left_last_usec := 0
-var _pan_glide := Vector3.ZERO
-var _cam_home_ready := false
-const CAM_PITCH_MIN := 0.262  # 15 deg
-const CAM_PITCH_MAX := 1.396  # 80 deg
-const CAM_ZOOM_MIN := 2.0
-const CAM_ZOOM_MAX := 14.0
-const CAM_HEIGHT_MIN := -2.0
-const CAM_HEIGHT_MAX := 10.0
-const CAM_DIST := 7.2
-const CAM_ACCEL := 16.0
-const CAM_FRICTION := 14.0
-const CAM_MOVE_SPEED := 4.2
+var camera_rig: FarmCameraRig
 const FONT_SIZE_MIN := 12
 const FONT_SIZE_MAX := 32
 
@@ -450,6 +413,7 @@ const INTRO_DURATION := 1.6
 
 
 func _ready() -> void:
+	_setup_camera_rig()
 	farm_tile.visible = false
 	grass_placeholder.visible = false
 	_setup_fonts()
@@ -472,6 +436,21 @@ func _ready() -> void:
 	_setup_session()
 
 
+
+func _setup_camera_rig() -> void:
+	camera_rig = FarmCameraRig.new()
+	camera_rig.name = "CameraRig"
+	add_child(camera_rig)
+	camera_rig.setup(camera, {
+		"point_over_ui": _point_over_ui,
+		"mouse_over_editor": _mouse_over_editor,
+		"text_input_focused": _text_input_has_focus,
+		"panel_open": func() -> bool: return _open_panel != "",
+		"farm_size": func() -> int: return _shown_size,
+		"code_window_visible": func() -> bool: return code_window != null and code_window.visible,
+	})
+
+
 func _setup_session() -> void:
 	get_tree().auto_accept_quit = false
 	audio = FarmAudio.new()
@@ -485,7 +464,7 @@ func _setup_session() -> void:
 	_load_progress()
 	_ensure_farm_size(host.get_world_size())
 	_snap_drone()
-	_set_camera_for_size(host.get_world_size(), true)
+	camera_rig.apply_home(host.get_world_size(), true)
 	if start_on_farm:
 		_session_phase = "playing"
 		return
@@ -1924,7 +1903,7 @@ func _process(delta: float) -> void:
 		_save_elapsed = 0.0
 		_queue_save()
 	_hover_t += delta
-	_update_camera_input(delta)
+	camera_rig.update_input(delta)
 	_advance_sim(delta)
 	var err: String = host.last_error()
 	if err != "":
@@ -1962,7 +1941,7 @@ func _process(delta: float) -> void:
 	_sync_drone_fleet()
 	_update_drone(delta)
 	_refresh_file_bar_visibility()
-	_update_camera(delta)
+	camera_rig.update(delta)
 	_update_hay()
 	_maybe_unlock_hint()
 	if _open_panel == "skill":
@@ -2387,7 +2366,7 @@ func _input(event: InputEvent) -> void:
 	# the mouse. Never capture the cursor.
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		clear_camera_drag()
-	_handle_camera_event(event)
+	camera_rig.handle_event(event)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -2398,7 +2377,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_dismiss_error()
 		# Clicking empty farm gives the keyboard back to the camera.
-		if not _point_over_ui(_event_mouse_pos(event)):
+		if not _point_over_ui(camera_rig.event_mouse_pos(event)):
 			if get_viewport():
 				get_viewport().gui_release_focus()
 			if event.double_click:
@@ -2637,7 +2616,7 @@ func _confirm_reset() -> void:
 	_ensure_farm_size(1)
 	reset_camera(true)
 	_snap_drone()
-	_set_camera_for_size(1, false)
+	camera_rig.apply_home(1, false)
 	if code_window:
 		if code_window.maximized:
 			code_window.toggle_maximize()
@@ -3352,7 +3331,7 @@ func _ensure_farm_size(size: int) -> void:
 	_update_earth(size)
 	_rebuild_tile_batches(size)
 	if size != previous:
-		_set_camera_for_size(size, false)
+		camera_rig.apply_home(size, false)
 
 
 func _position_plots(size: int) -> void:
@@ -3875,108 +3854,17 @@ func _make_blade_mesh(bend: float, base_w: float, tip_w: float, height: float) -
 	return st.commit()
 
 
-func _set_camera_for_size(size: int, instant: bool) -> void:
-	_apply_camera_home(size, instant)
-
-
+## Public camera actions (buttons, F key, tests).
 func reset_camera(instant: bool = false) -> void:
-	clear_camera_drag()
-	_apply_camera_home(_shown_size if _shown_size > 0 else 1, instant)
-	_cam_vel = Vector3.ZERO
+	camera_rig.reset(instant)
 
 
-func camera_home_yaw() -> float:
-	return 0.71
+func clear_camera_drag() -> void:
+	if camera_rig:
+		camera_rig.clear_drag()
 
 
-func camera_home_pitch() -> float:
-	return deg_to_rad(40.0)
-
-
-func camera_home_zoom(size: int = -1) -> float:
-	if size < 0:
-		size = _shown_size
-	return 4.15 if size <= 1 else 6.35
-
-
-func _farm_center() -> Vector3:
-	return Vector3(0.0, TILE_HEIGHT * 0.45, 0.0)
-
-
-func _framing_offset(size: int, zoom: float) -> Vector3:
-	# Shift look-at left so the farm sits in the open space right of the code window.
-	var yaw := camera_home_yaw()
-	var pitch := camera_home_pitch()
-	var forward := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch))
-	var right := Vector3.UP.cross(forward).normalized()
-	var amount := zoom * 0.28
-	if code_window and not code_window.visible:
-		amount = 0.08 * zoom
-	return -right * amount + Vector3(0, 0.04 * float(size - 1), 0)
-
-
-func _apply_camera_home(size: int, instant: bool) -> void:
-	var zoom := camera_home_zoom(size)
-	_cam_yaw = camera_home_yaw()
-	_cam_pitch = camera_home_pitch()
-	_cam_zoom = zoom
-	_cam_target = _farm_center() + _framing_offset(size, zoom)
-	_cam_pos = _cam_target - _camera_look_dir(_cam_yaw, _cam_pitch) * CAM_DIST
-	_clamp_camera_pos()
-	if instant:
-		_cam_yaw_s = _cam_yaw
-		_cam_pitch_s = _cam_pitch
-		_cam_zoom_s = _cam_zoom
-		_cam_pos_s = _cam_pos
-		_sync_target_from_pos()
-		_apply_camera_transform()
-	_cam_home_ready = true
-	_cam_t = 1.0
-
-
-func _camera_look_dir(yaw: float, pitch: float) -> Vector3:
-	# Direction the camera looks: down toward the farm at the home pitch.
-	var p := clampf(pitch, CAM_PITCH_MIN, CAM_PITCH_MAX)
-	return Vector3(-sin(yaw) * cos(p), -sin(p), -cos(yaw) * cos(p))
-
-
-func _sync_target_from_pos() -> void:
-	_cam_target = _cam_pos + _camera_look_dir(_cam_yaw, _cam_pitch) * CAM_DIST
-	_cam_target_s = _cam_pos_s + _camera_look_dir(_cam_yaw_s, _cam_pitch_s) * CAM_DIST
-
-
-func _sync_pos_from_target() -> void:
-	_cam_pos = _cam_target - _camera_look_dir(_cam_yaw, _cam_pitch) * CAM_DIST
-	_cam_pos_s = _cam_target_s - _camera_look_dir(_cam_yaw_s, _cam_pitch_s) * CAM_DIST
-
-
-func _apply_camera_transform() -> void:
-	var pitch := clampf(_cam_pitch_s, CAM_PITCH_MIN, CAM_PITCH_MAX)
-	camera.position = _cam_pos_s
-	var look := camera.position + _camera_look_dir(_cam_yaw_s, pitch) * CAM_DIST
-	if camera.position.distance_to(look) > 0.001:
-		camera.look_at(look, Vector3.UP)
-	camera.size = _cam_zoom_s
-	_sync_target_from_pos()
-
-
-func _clamp_camera_pos() -> void:
-	# Wide hard bounds only — do not spring or ease the camera back.
-	var span := maxf(12.0, float(maxi(_shown_size, 1)) * TILE_SPACING * 5.0)
-	var c := _farm_center()
-	_cam_pos.x = clampf(_cam_pos.x, c.x - span, c.x + span)
-	_cam_pos.z = clampf(_cam_pos.z, c.z - span, c.z + span)
-	_cam_pos.y = clampf(_cam_pos.y, CAM_HEIGHT_MIN, CAM_HEIGHT_MAX)
-	_cam_zoom = clampf(_cam_zoom, CAM_ZOOM_MIN, CAM_ZOOM_MAX)
-	_cam_pitch = clampf(_cam_pitch, CAM_PITCH_MIN, CAM_PITCH_MAX)
-
-
-func _clamp_camera_target() -> void:
-	# Kept for callers that still set _cam_target; convert to a position clamp.
-	_sync_pos_from_target()
-	_clamp_camera_pos()
-	_sync_target_from_pos()
-
+# --- UI hit testing (shared by the camera rig and click handling) ---
 
 func _text_input_has_focus() -> bool:
 	var focus := get_viewport().gui_get_focus_owner() if get_viewport() else null
@@ -3989,17 +3877,6 @@ func _mouse_over_editor() -> bool:
 	if editor == null or not editor.is_visible_in_tree():
 		return false
 	return editor.get_global_rect().has_point(editor.get_global_mouse_position())
-
-
-func _event_mouse_pos(event: InputEvent) -> Vector2:
-	if event is InputEventMouse:
-		var ev := event as InputEventMouse
-		if ev.global_position != Vector2.ZERO:
-			return ev.global_position
-		return ev.position
-	if get_viewport():
-		return get_viewport().get_mouse_position()
-	return Vector2.ZERO
 
 
 func _is_under_ui_root(node: Node) -> bool:
@@ -4028,290 +3905,6 @@ func _point_over_ui(pos: Vector2) -> bool:
 		if hovered and hovered != ui_root and _is_under_ui_root(hovered) and hovered.mouse_filter != Control.MOUSE_FILTER_IGNORE:
 			return true
 	return false
-
-
-func _mouse_over_ui() -> bool:
-	if get_viewport():
-		return _point_over_ui(get_viewport().get_mouse_position())
-	return false
-
-
-func clear_camera_drag() -> void:
-	_cam_orbiting = false
-	_cam_panning = false
-	_left_pending = false
-	_end_left_drag(false)
-	_pan_glide = Vector3.ZERO
-	if Input.mouse_mode != Input.MOUSE_MODE_VISIBLE:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-
-
-func _mouse_delta(mm: InputEventMouseMotion) -> Vector2:
-	# Use relative motion so canvas_items stretch / hiDPI does not skew the drag.
-	if mm.relative != Vector2.ZERO:
-		return mm.relative
-	return mm.screen_relative
-
-
-func _handle_camera_event(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
-		# Releases and Esc-equivalents always clear drag, even over UI.
-		if not mb.pressed and (mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE):
-			clear_camera_drag()
-			return
-		if mb.button_index == MOUSE_BUTTON_LEFT:
-			_handle_left_button(mb)
-			return
-		var over_ui := _point_over_ui(_event_mouse_pos(mb)) or (_open_panel != "")
-		if mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			if over_ui or _mouse_over_editor() or _text_input_has_focus() or _mouse_over_ui():
-				return
-			var step := 0.22 * (mb.factor if mb.factor != 0.0 else 1.0)
-			var next_zoom := _cam_zoom + (step if mb.button_index == MOUSE_BUTTON_WHEEL_DOWN else -step)
-			_zoom_camera_toward_mouse(next_zoom)
-			if get_viewport():
-				get_viewport().set_input_as_handled()
-			return
-		if over_ui:
-			return
-		if mb.button_index == MOUSE_BUTTON_RIGHT:
-			if mb.shift_pressed:
-				_cam_panning = true
-				_cam_orbiting = false
-			else:
-				_cam_orbiting = true
-				_cam_panning = false
-			_pan_glide = Vector3.ZERO
-			if get_viewport():
-				get_viewport().gui_release_focus()
-				get_viewport().set_input_as_handled()
-			return
-		if mb.button_index == MOUSE_BUTTON_MIDDLE:
-			_cam_panning = true
-			_cam_orbiting = false
-			if get_viewport():
-				get_viewport().gui_release_focus()
-				get_viewport().set_input_as_handled()
-			return
-	elif event is InputEventMouseMotion:
-		var mm := event as InputEventMouseMotion
-		var d := _mouse_delta(mm)
-		if _left_pending or _left_dragging:
-			_handle_left_motion(mm)
-			return
-		if _cam_orbiting:
-			# Rotate in place: keep the camera where it is, turn the look direction.
-			_cam_yaw -= d.x * 0.0055
-			_cam_pitch += d.y * 0.0045
-			_cam_pitch = clampf(_cam_pitch, CAM_PITCH_MIN, CAM_PITCH_MAX)
-			_cam_yaw_s = _cam_yaw
-			_cam_pitch_s = _cam_pitch
-			_sync_target_from_pos()
-			_apply_camera_transform()
-			if get_viewport():
-				get_viewport().set_input_as_handled()
-		elif _cam_panning:
-			_pan_camera_by_pixels(d)
-			if get_viewport():
-				get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and not event.echo and not _text_input_has_focus():
-		if event.keycode == KEY_F and not event.ctrl_pressed and not event.alt_pressed:
-			reset_camera(false)
-			if get_viewport():
-				get_viewport().set_input_as_handled()
-
-
-func _handle_left_button(mb: InputEventMouseButton) -> void:
-	if mb.pressed:
-		_pan_glide = Vector3.ZERO
-		# Only a press on the farm itself can become a drag; UI keeps its clicks.
-		if _point_over_ui(_event_mouse_pos(mb)) or _open_panel != "":
-			return
-		_left_pending = true
-		_left_dragging = false
-		_left_press_pos = _event_mouse_pos(mb)
-		_left_last_pos = _left_press_pos
-		_left_last_usec = Time.get_ticks_usec()
-		return
-	_left_pending = false
-	if _left_dragging:
-		_end_left_drag(true)
-		# The release ends a drag, not a click on whatever is under it.
-		if get_viewport():
-			get_viewport().set_input_as_handled()
-
-
-func _handle_left_motion(mm: InputEventMouseMotion) -> void:
-	if (mm.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0:
-		_left_pending = false
-		_end_left_drag(true)
-		return
-	var pos := _event_mouse_pos(mm)
-	if _left_pending and not _left_dragging:
-		if pos.distance_to(_left_press_pos) < LEFT_DRAG_THRESHOLD:
-			return
-		_left_dragging = true
-		_left_pending = false
-		_cam_vel = Vector3.ZERO
-		Input.set_default_cursor_shape(Input.CURSOR_DRAG)
-		if get_viewport():
-			get_viewport().gui_release_focus()
-	var now := Time.get_ticks_usec()
-	var moved := _pan_camera_grab(_left_last_pos, pos)
-	var dt := maxf(0.001, float(now - _left_last_usec) / 1000000.0)
-	# Smoothed release velocity for the glide.
-	_pan_glide = _pan_glide.lerp(moved / dt, 0.45)
-	_left_last_pos = pos
-	_left_last_usec = now
-	if get_viewport():
-		get_viewport().set_input_as_handled()
-
-
-func _end_left_drag(glide: bool) -> void:
-	if not _left_dragging:
-		return
-	_left_dragging = false
-	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
-	# Holding still before letting go means no glide.
-	var idle := float(Time.get_ticks_usec() - _left_last_usec) / 1000000.0
-	if not glide or idle > 0.08:
-		_pan_glide = Vector3.ZERO
-	elif _pan_glide.length() > PAN_GLIDE_MAX_SPEED:
-		_pan_glide = _pan_glide.normalized() * PAN_GLIDE_MAX_SPEED
-
-
-# Move the camera so the ground point under `from` ends up under `to`.
-# Returns the world-space camera move.
-func _pan_camera_grab(from: Vector2, to: Vector2) -> Vector3:
-	_apply_camera_transform()
-	var a := _camera_ground_point(from)
-	var b := _camera_ground_point(to)
-	var move := a - b
-	move.y = 0.0
-	var before := _cam_pos
-	_cam_pos += move
-	_clamp_camera_pos()
-	_cam_pos_s = _cam_pos
-	_cam_zoom_s = _cam_zoom
-	_sync_target_from_pos()
-	_apply_camera_transform()
-	return _cam_pos - before
-
-
-func _pan_camera_by_pixels(delta: Vector2) -> void:
-	# Grab-the-ground: the point under the cursor follows the mouse.
-	var vp_h := 1.0
-	if get_viewport():
-		vp_h = maxf(1.0, get_viewport().get_visible_rect().size.y)
-	var scale := maxf(0.5, _cam_zoom_s) / vp_h
-	var right := camera.global_transform.basis.x
-	var up := camera.global_transform.basis.y
-	if right.length_squared() < 0.0001:
-		right = Vector3.RIGHT
-	_cam_pos += -right.normalized() * delta.x * scale + up.normalized() * delta.y * scale
-	_clamp_camera_pos()
-	_cam_pos_s = _cam_pos
-	_cam_zoom_s = _cam_zoom
-	_sync_target_from_pos()
-	_apply_camera_transform()
-
-
-func _camera_ground_point(screen: Vector2) -> Vector3:
-	if camera == null:
-		return _farm_center()
-	var origin := camera.project_ray_origin(screen)
-	var dir := camera.project_ray_normal(screen)
-	var plane_y := TILE_HEIGHT * 0.45
-	if absf(dir.y) < 0.0001:
-		return origin
-	var dist := (plane_y - origin.y) / dir.y
-	return origin + dir * dist
-
-
-func _zoom_camera_toward_mouse(next_zoom: float) -> void:
-	next_zoom = clampf(next_zoom, CAM_ZOOM_MIN, CAM_ZOOM_MAX)
-	var old_zoom := _cam_zoom
-	if is_equal_approx(next_zoom, old_zoom):
-		return
-	var mouse := Vector2.ZERO
-	if get_viewport():
-		mouse = get_viewport().get_mouse_position()
-	_apply_camera_transform()
-	var before := _camera_ground_point(mouse)
-	_cam_zoom = next_zoom
-	_cam_zoom_s = next_zoom
-	_apply_camera_transform()
-	var after := _camera_ground_point(mouse)
-	_cam_pos += before - after
-	_clamp_camera_pos()
-	_cam_pos_s = _cam_pos
-	_sync_target_from_pos()
-	_apply_camera_transform()
-
-
-func _update_camera_input(delta: float) -> void:
-	var wish := Vector3.ZERO
-	if not _text_input_has_focus() and _open_panel == "":
-		var right := Vector3(cos(_cam_yaw), 0.0, -sin(_cam_yaw))
-		if right.length_squared() < 0.0001:
-			right = Vector3.RIGHT
-		right = right.normalized()
-		var forward := Vector3(-sin(_cam_yaw), 0.0, -cos(_cam_yaw)).normalized()
-		if Input.is_key_pressed(KEY_W):
-			wish += forward
-		if Input.is_key_pressed(KEY_S):
-			wish -= forward
-		if Input.is_key_pressed(KEY_A):
-			wish -= right
-		if Input.is_key_pressed(KEY_D):
-			wish += right
-		if Input.is_key_pressed(KEY_SPACE):
-			wish.y += 1.0
-		if Input.is_key_pressed(KEY_SHIFT) and not _cam_panning:
-			wish.y -= 1.0
-	if wish.length_squared() > 1.0:
-		wish = wish.normalized()
-	if wish.length_squared() > 0.0:
-		_pan_glide = Vector3.ZERO
-		_cam_vel = wish * CAM_MOVE_SPEED
-		_cam_pos += _cam_vel * delta
-		_clamp_camera_pos()
-		_cam_pos_s = _cam_pos
-		_sync_target_from_pos()
-	else:
-		# Stop almost immediately so the view does not slide or arc.
-		_cam_vel = Vector3.ZERO
-
-
-func _update_camera(delta: float) -> void:
-	# Look and pan stay 1:1 with the mouse. Only F / 回正 uses a short ease.
-	if not _left_dragging and _pan_glide.length_squared() > 0.0:
-		# Short, light glide after a left-drag.
-		var before := _cam_pos
-		_cam_pos += _pan_glide * delta
-		_clamp_camera_pos()
-		_sync_target_from_pos()
-		if _cam_pos.distance_squared_to(before) < 1e-10:
-			_pan_glide = Vector3.ZERO
-		_pan_glide *= exp(-delta * PAN_GLIDE_DECAY)
-		if _pan_glide.length() < 0.02:
-			_pan_glide = Vector3.ZERO
-	var looking := _cam_orbiting or _cam_panning or _left_dragging or _pan_glide.length_squared() > 0.0 \
-		or _cam_vel.length_squared() > 0.00001
-	if looking:
-		_cam_yaw_s = _cam_yaw
-		_cam_pitch_s = _cam_pitch
-		_cam_pos_s = _cam_pos
-		_cam_zoom_s = _cam_zoom
-		_apply_camera_transform()
-		return
-	var k := 1.0 - exp(-delta * 14.0)
-	_cam_yaw_s = lerp_angle(_cam_yaw_s, _cam_yaw, k)
-	_cam_pitch_s = lerpf(_cam_pitch_s, _cam_pitch, k)
-	_cam_zoom_s = lerpf(_cam_zoom_s, _cam_zoom, k)
-	_cam_pos_s = _cam_pos_s.lerp(_cam_pos, k)
-	_apply_camera_transform()
 
 
 func _snap_drone() -> void:

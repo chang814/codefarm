@@ -168,7 +168,7 @@ func window_checks(main: Node) -> void:
 	var win = main.code_window
 	var original: Rect2 = win.get_rect()
 	var hint_original: Rect2 = main.hint_window.get_rect()
-	var camera: Vector3 = main.get("_cam_target")
+	var camera: Vector3 = main.camera_rig.get("target")
 	click(win.max_button)
 	check(win.maximized, "actual maximize button changes state")
 	check(same_rect(win.get_rect(), original), "docking listener must not snap maximize geometry")
@@ -187,7 +187,7 @@ func window_checks(main: Node) -> void:
 	check(same_rect(win.get_rect(), target), "maximize fills usable bounds")
 	check(win.position.y == win.max_top_margin and win.get_rect().end.y <= root.size.y - 63, "maximize respects toolbar and docked hint")
 	check(main.hint_window.minimized, "hint docks during maximize")
-	check(main.get("_cam_target") == camera, "chrome click cannot pan the farm")
+	check(main.camera_rig.get("target") == camera, "chrome click cannot pan the farm")
 	await capture("ui-028-max")
 	click(win.max_button)
 	await settle()
@@ -286,7 +286,7 @@ func window_checks(main: Node) -> void:
 	await settle()
 	check(main.hint_copied_label.visible, "repeated copy renews feedback")
 	# Restore camera through its actual topbar control.
-	main.set("_cam_yaw", float(main.call("camera_home_yaw")) + 0.5)
+	main.camera_rig.set("yaw", float(main.camera_rig.call("home_yaw")) + 0.5)
 	# 0.2.9: reset and changelog live in the settings panel, not the top bar.
 	click(main.settings_button)
 	await settle()
@@ -296,7 +296,7 @@ func window_checks(main: Node) -> void:
 	click(main.overlay_close)
 	await settle()
 	check(not main.reset_cam_button.is_visible_in_tree(), "camera reset leaves with the panel")
-	check(absf(float(main.get("_cam_yaw")) - float(main.call("camera_home_yaw"))) < 0.01, "camera reset button")
+	check(absf(float(main.camera_rig.get("yaw")) - float(main.camera_rig.call("home_yaw"))) < 0.01, "camera reset button")
 
 func run() -> void:
 	root.size = Vector2i(1440, 900)
