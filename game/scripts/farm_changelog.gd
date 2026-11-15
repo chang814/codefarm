@@ -2,7 +2,11 @@ extends RefCounted
 ## In-game update log shown by the 日志 panel. Add each release on top, together
 ## with VERSION, game/project.godot, CHANGELOG.md and game/changelog.md.
 
-const TEXT := """0.2.11  —  2026-11-14
+const TEXT := """0.2.12  —  2026-11-15
+
+代码结构整理，玩法不变：主场景拆为田地、小 bot、相机、技能树、编辑辅助、多文件等独立组件，解释器按词法、解析、运行时拆分；清理未使用代码与编译警告。文档改为按 Codefarm 自身定位描述，并移除本机路径等个人信息。
+
+0.2.11  —  2026-11-14
 
 GitHub 公开试玩版。修复导出资源包后中文与代码字体读取失败：优先通过 Godot 资源加载器读取导入字体，保留源文件回退。增加 Windows 免安装试玩包与源码构建说明。保留 0.2.10 的存档、声音、欢迎页、场景与游戏规则。
 

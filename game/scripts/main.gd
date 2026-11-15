@@ -18,7 +18,7 @@ const FarmEditorAssist := preload("res://scripts/farm_editor_assist.gd")
 const FarmCodeFiles := preload("res://scripts/farm_code_files.gd")
 const FarmSkillTree := preload("res://scripts/farm_skill_tree.gd")
 
-const VERSION := "0.2.11"
+const VERSION := "0.2.12"
 const STARTER := """#include <bits/stdc++.h>
 using namespace std;
 
@@ -144,6 +144,8 @@ var _intro_home_size := 4.15
 const INTRO_DURATION := 1.6
 
 
+# --- Startup: create the components, then the UI -------------------------------
+
 func _ready() -> void:
 	_setup_field()
 	_setup_skill_tree()
@@ -229,6 +231,8 @@ func _setup_bot() -> void:
 		"sfx": _sfx,
 	})
 
+
+# --- Session: welcome screen and intro flight ----------------------------------
 
 func _setup_session() -> void:
 	get_tree().auto_accept_quit = false
@@ -364,6 +368,8 @@ func smootherstep(t: float) -> float:
 	return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 
 
+# --- Progress: autosave and restore --------------------------------------------
+
 func _snapshot_progress() -> Dictionary:
 	code_files.flush_active()
 	var view := skill_tree.capture_view()
@@ -476,6 +482,8 @@ func _save_now() -> bool:
 func _exit_tree() -> void:
 	_save_now()
 
+
+# --- UI construction: kit, editor helpers, windows -----------------------------
 
 func _setup_ui_kit() -> void:
 	ui = FarmUiKit.new()
@@ -992,6 +1000,8 @@ func _build_hint_window() -> void:
 	hint_line = hint_body_label
 
 
+# --- Code / hint window layout -------------------------------------------------
+
 func _toggle_code_window() -> void:
 	if code_window == null:
 		return
@@ -1114,6 +1124,8 @@ func _attach_run_buttons(win: FarmWindow) -> void:
 	win.tools_left.add_child(run_loop_button)
 	win.tools_left.add_child(run_once_button)
 
+
+# --- Main loop and running programs --------------------------------------------
 
 func _advance_sim(delta: float) -> void:
 	if _stepping and (host.is_running() or host.is_paused()):
@@ -1262,6 +1274,8 @@ func _on_editor_focus_entered() -> void:
 		_on_stop()
 
 
+# --- Top bar -------------------------------------------------------------------
+
 func _update_hay() -> void:
 	if hay_label:
 		hay_label.text = str(host.get_hay())
@@ -1304,6 +1318,8 @@ func _update_buttons() -> void:
 	if not running and not _stepping and editor:
 		editor.editable = true
 
+
+# --- Hint window: pain, next line, exemplar ------------------------------------
 
 func _skill_owned(id: String) -> bool:
 	return id == "harvest" or bool(host.is_unlocked(id))
@@ -1447,6 +1463,8 @@ func _maybe_unlock_hint(refresh_panel: bool = true) -> void:
 
 
 
+# --- Errors and the execution highlight ----------------------------------------
+
 func _present_host_error(runtime: bool) -> void:
 	var message := str(host.last_error())
 	if message.is_empty():
@@ -1564,6 +1582,8 @@ func _clear_highlight() -> void:
 	_pending_t = 0.0
 
 
+# --- Input routing -------------------------------------------------------------
+
 func _input(event: InputEvent) -> void:
 	if _session_phase != "playing":
 		return
@@ -1602,6 +1622,8 @@ func _notification(what: int) -> void:
 		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
 			clear_camera_drag()
 
+
+# --- Overlay panels: skills, hint, log, settings, reset ------------------------
 
 func _on_backdrop_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -1829,6 +1851,8 @@ func _confirm_reset() -> void:
 	_queue_save()
 
 
+# --- Exemplars and buying ------------------------------------------------------
+
 func _skill_template(id: String) -> String:
 	return FarmSkillData.exemplar(id)
 
@@ -1862,6 +1886,8 @@ func buy_skill(id: String) -> int:
 		_fill_panel("skill")
 	return code
 
+
+# --- Camera actions ------------------------------------------------------------
 
 ## Public camera actions (buttons, F key, tests).
 func reset_camera(instant: bool = false) -> void:
@@ -1915,6 +1941,8 @@ func _point_over_ui(pos: Vector2) -> bool:
 			return true
 	return false
 
+
+# --- Farm events and lighting --------------------------------------------------
 
 ## A harvest landed: sound, flattened crop on the tile, and the bot's swing.
 func _on_harvested() -> void:

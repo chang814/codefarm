@@ -1,5 +1,25 @@
 # 更新日志
 
+## 0.2.12 — 2026-11-15
+
+### 代码结构整理（玩法不变）
+
+- main.gd 从 5097 行拆为组装层（约 1960 行）和 9 个组件：田地 farm_field、小 bot farm_bot、相机 farm_camera_rig、技能树 farm_skill_tree、编辑辅助 farm_editor_assist、多文件 farm_code_files、界面工具 farm_ui_kit、配色 farm_palette、田块几何 farm_layout；游戏内更新日志移到 farm_changelog.gd。组件通过 setup() 接收依赖、用信号把购买、编辑、点击等交还 main。
+- 解释器 interpreter.cpp（3777 行）拆为词法、语法树、解析、运行时四个内部头文件和执行主体。
+- 删除只声明未使用的变量、空操作语句和一段立即被覆盖、从未显示的技能说明拼装；修复 6 个编译警告。
+- 验收脚本改为通过 main 的组件访问状态；修正两处在方法改名后会静默跳过的检查。
+- 新增 docs/ARCHITECTURE.md，说明各文件职责和「改什么在哪里」。
+
+### 公开仓库整理
+
+- 文档按 Codefarm 自身定位描述，不再写成其他游戏的 C++ 版。
+- 文档中的本机路径、用户名和私人目录名改为占位符；更新已过期的「不要上传 GitHub」约定；29 个指向未入库文件的断链改为文字说明。
+
+### 验证
+
+- 1844 项 C++ 检查通过，玩家路线 45 次购买、3124.48 秒，与 0.2.11 一致。
+- Linux 下 Godot 4.7.2 验收：VERIFY_OK、SAVE_OK、EDITOR_OK、SMOKE_OK、UI_MOTION_OK、REFINE_028_OK、REFINE_0210_OK；verify_skill_drag 的「松手惯性滑行」一项在无显卡软件渲染下失败，改动前同样失败（按真实时钟判断松手停顿）。未在 Windows 与真实显卡上复测。
+
 ## 0.2.11 — 2026-11-14
 
 ### 公开试玩发布
