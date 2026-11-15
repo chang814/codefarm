@@ -9,7 +9,6 @@ using namespace codefarm;
 
 static std::ostream& operator<<(std::ostream& o, EntityType t) { return o << entity_type_name(t); }
 static std::ostream& operator<<(std::ostream& o, GroundType t) { return o << ground_type_name(t); }
-static std::ostream& operator<<(std::ostream& o, Hat t) { return o << hat_name(t); }
 
 
 static int g_failed = 0;
