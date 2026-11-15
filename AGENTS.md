@@ -18,17 +18,20 @@ Code changes go through **Codex CLI**. Codex Bot assigns the work, watches it, v
 ```
 sim/            C++ simulator (no Godot dependency)
   include/codefarm/types.hpp world.hpp interpreter.hpp
-  src/world.cpp interpreter.cpp
+  src/world.cpp interpreter.cpp interpreter_{lexer,ast,parser,runtime}.hpp
 tests/          unit tests, full playthrough, exemplar coverage
 extension/      GDExtension bridge (CodefarmHost)
 game/           Godot 4 project (open the game/ folder)
-  scripts/main.gd skill_data.gd farm_window.gd ...
+  scripts/main.gd (composition root) + farm_field / farm_bot / farm_camera_rig /
+          farm_skill_tree / farm_editor_assist / farm_code_files / farm_ui_kit ...
   exemplars/    reference solutions shared by the game and the tests
   fonts/ themes/ scenes/ bin/
 docs/           overview, playthrough, skill tree, endless plan, research/
 third_party/    godot-cpp (needed to build the extension, not in the src zip)
 tools/          official Godot 4.7.2 editor binary (optional)
 ```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each file owns and which file to change.
 
 `game/exemplars/<id>.cpp` is the exact program the playthrough test runs and the exact text the in-game hint shows. Do not keep a second "display only" copy.
 
@@ -84,7 +87,7 @@ Update all of these together:
 1. `VERSION`
 2. `game/project.godot` (`config/version`)
 3. `game/scripts/main.gd` (`const VERSION`)
-4. Three changelogs, each with an entry: `CHANGELOG.md`, `game/changelog.md`, and `CHANGELOG_TEXT` in `main.gd`
+4. Three changelogs, each with an entry: `CHANGELOG.md`, `game/changelog.md`, and `TEXT` in `game/scripts/farm_changelog.gd`
 5. The version in `README.md` when it states the current release
 
 ## Coding conventions and known pitfalls

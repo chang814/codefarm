@@ -20,7 +20,7 @@
 1. `VERSION`
 2. `game/project.godot` 里的 `config/version`
 3. `game/scripts/main.gd` 里的 `const VERSION`
-4. 三处更新日志：`CHANGELOG.md`、`game/changelog.md`、`main.gd` 里的 `CHANGELOG_TEXT`
+4. 三处更新日志：`CHANGELOG.md`、`game/changelog.md`、`game/scripts/farm_changelog.gd` 里的 `TEXT`
 5. 若 README 写了当前版本，一并改
 
 更新日志要写清楚：改了什么、为什么、怎么验证的。不要写空的「杂项修复」。比较完整的一轮，再在 `docs/review-<版本>.md` 里记下检查结果和没做的事（范例：`review-0.2.4.md`）。

@@ -88,7 +88,11 @@ codefarm/
 
 | 文件 | 职责 |
 | --- | --- |
-| `main.gd` | 主场景：3D 农场、相机、顶栏、代码窗、技能树、提示、设置、运行控制、更新日志。文件**最顶部**的 `preload` 不能删（Windows 类缓存依赖它）。 |
+| `main.gd` | 主场景的组装层：创建并连接下列组件，负责主循环、欢迎页、存档、代码窗与提示窗、运行控制、报错和设置面板。文件**最顶部**的 `preload` 不能删（Windows 类缓存依赖它）。 |
+| `farm_field.gd` / `farm_bot.gd` / `farm_camera_rig.gd` | 田地与草甸、小 bot 与多机、相机手感。 |
+| `farm_skill_tree.gd` | 技能树面板、购买反馈与详情。 |
+| `farm_editor_assist.gd` / `farm_code_files.gd` | 编辑器字号、补全、语法配色；main.cpp 与头文件管理。 |
+| `farm_ui_kit.gd` / `farm_palette.gd` / `farm_layout.gd` / `farm_changelog.gd` | 字体主题与控件工厂、配色、田块几何、游戏内更新日志。完整说明见 [ARCHITECTURE.md](ARCHITECTURE.md)。 |
 | `skill_data.gd` | 技能树节点、连线、痛点文案、范本读取。 |
 | `farm_window.gd` | 可拖动、缩放、最小化的浮窗。**缩放手柄必须是 `body` 的子节点**，不能直接挂在 `PanelContainer` 上，否则整窗都会变成缩放热区并留下色块。 |
 | `farm_run_button.gd` | 实心三角「运行一遍」、空心三角「单步」。 |
@@ -213,7 +217,7 @@ cmd.exe /c "set PATH=<MinGW>\bin;%PATH% && cd /d <本机仓库> && build-win\cod
 这些是项目的硬约定，改代码或写界面时不要走样。
 
 - **玩家代码**必须是标准 C++ 形态：`#include <bits/stdc++.h>`、`using namespace std;`、`int main()`。
-- **版本号**为「大.小.补丁」。小改（修 bug、文档、小交互）升补丁；大内容或整块新系统升次版本。改动要写进三处更新日志：根目录 `CHANGELOG.md`、`game/changelog.md`、`game/scripts/main.gd` 里的 `CHANGELOG_TEXT`，并同步 `VERSION`、`game/project.godot` 的 `config/version`、`main.gd` 的 `VERSION`。
+- **版本号**为「大.小.补丁」。小改（修 bug、文档、小交互）升补丁；大内容或整块新系统升次版本。改动要写进三处更新日志：根目录 `CHANGELOG.md`、`game/changelog.md`、`game/scripts/farm_changelog.gd` 里的 `TEXT`，并同步 `VERSION`、`game/project.godot` 的 `config/version`、`main.gd` 的 `VERSION`。
 - **UI** 苛求设计感：图标加一个词，少文字，不堆说明。顶栏图标按钮接近正方形（约 36×36，圆角约 6），图标居中；文字按钮不必改成正方形。
 - **字体：** 系统界面用 Noto Sans CJK SC（SIL OFL，做了加大和更柔和的字重 / 行距）；代码区用可缩放的 JetBrains Mono 20px。回退字体是 Droid Sans Fallback。
 - **伙伴形象：** 奶黄球形豆子身体 + 固定黑色竖条眼（不眨眼），无屏幕脸，无脚下圆环。田下不要做成带清晰圆边的正圆岛屿。
