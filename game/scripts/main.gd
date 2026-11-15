@@ -11,6 +11,9 @@ const FarmAudio := preload("res://scripts/farm_audio.gd")
 const FarmCameraRig := preload("res://scripts/farm_camera_rig.gd")
 const FarmBot := preload("res://scripts/farm_bot.gd")
 const FarmField := preload("res://scripts/farm_field.gd")
+const FarmPalette := preload("res://scripts/farm_palette.gd")
+const FarmChangelog := preload("res://scripts/farm_changelog.gd")
+const FarmUiKit := preload("res://scripts/farm_ui_kit.gd")
 
 const VERSION := "0.2.11"
 const STARTER := """#include <bits/stdc++.h>
@@ -25,218 +28,7 @@ int main() {
 
 const CONTROLS_TEXT := "视角：左键按住地面拖动平移（松手轻轻滑一下），右键拖动转动，滚轮缩放，WASD 移动，F 回正。左键点在窗口和按钮上只操作界面。"
 
-const CHANGELOG_TEXT := """0.2.11  —  2026-11-14
 
-GitHub 公开试玩版。修复导出资源包后中文与代码字体读取失败：优先通过 Godot 资源加载器读取导入字体，保留源文件回退。增加 Windows 免安装试玩包与源码构建说明。保留 0.2.10 的存档、声音、欢迎页、场景与游戏规则。
-
-0.2.10  —  2026-11-14
-
-修复：小 bot 连续抖动或翻跟头后不再偏离地块；在 return 0; 上一行按回车等正常输入不再被框架保护撤销；报错标记不再每帧刷错误；欢迎页特写不再被草挡住，并显示存档里的农场、干草和技能数。
-
-画面：草甸有色块与云影，四周有摆动的草丛、小花、圆树、光点和蝴蝶，全部由代码生成。地块改为圆角柔和方块，阴影更软。技能树里共用图标的技能各有自己的简单图形。
-
-模拟器规则与范本未改。
-
-0.2.9  —  2026-11-14
-
-进度自动保存：农场、库存、技能、代码和窗口状态都会留下，关掉再开可以「继续游戏」。存档带校验并保留一份备份，主档损坏时自动用备份。
-
-新增欢迎页，修复开始按钮被排到屏幕外的问题。新增代码合成的音效（收割、挥空、耕地、解锁等），设置里可选关 / 轻 / 开。
-
-顶栏收为四个按钮，视角回正和更新日志移入设置。技能卡加一行用途并保持固定大小；提示窗默认露出范本按钮。模拟器规则与范本未改；C++ 1844 项检查、六项 Godot 验收与存档专项通过。
-
-0.2.8  —  2026-11-11
-
-技能树收紧为向下主干与两侧短分支，连线表示学习路线，完整前置放进节点提示。价格分行、悬停接头稳定；左拖保留 6px 阈值并增加短惯性，滚轮缩放、全貌与还原方便找后期节点，购买后保持视图。
-
-提示先显示痛点和本次要加的一行；加速直接指向「条件」与 if (can_harvest()) harvest();，余额不足时可停下等熟单收。完整范本可折叠、复制和载入；载入替换主程序并带上头文件。
-
-主机和多机共用奶黄球形身体、纯黑固定竖眼与协调的手臂锄头；移除眨眼。保留 0.2.7 收割时序与共享范本。既有 Windows C++ 1495 项检查、45 次购买路线、五项 Godot 验收与本轮专项检查通过；未重编扩展。验收与截图见 docs/review-0.2.8.md。
-
-0.2.7  —  2026-11-11
-
-未熟就砍会把草打回幼苗，重新生长 400 tick；加速后反复盲收会一直长不熟。成功和空挥都花当前动作时间，一档加速为 200 tick，查询仍为 1 tick，不伤幼苗。
-
-先停循环，等熟再单次收割，攒够 12 干草购买「条件」；在原有 while 里加 if (can_harvest()) harvest(); 即可等熟再收。生长、价格、产量和技能顺序不变。补充持续停产、查询时序、其它作物与正常恢复测试，完整验收见 docs/review-0.2.7.md。
-
-Windows C++ 1495 项检查与 153 项真实路线检查通过，完成 45 次购买。同起点 30 秒：盲收 1 干草后持续停产，条件循环 30 干草。五项 Godot 验证通过，扩展和运行库已更新。
-
-0.2.6  —  2026-11-11
-
-挥空固定花 400 tick，不再随加速或能量缩短；成功动作仍加速，草仍长 400 tick，查询仍花 1 tick。同一起点运行 30 秒，纯收获循环 20 干草，条件循环 30 干草。挥空有独立横扫，不裁切作物、不掉奖励；加速提示指向「条件」与 can_harvest()。
-
-修复提示窗避让取消最大化动画造成的瞬移；窗口用 300ms 平滑曲线连续放大与还原。快速反向、最小化转最大化、关闭重开、拖动缩放和屏幕尺寸变化保持正确状态。选项与复制反馈可打断旧动画，保留现有暖色风格与字体。
-
-载入完整范本时替换主程序并加载头文件，避免嵌套 main；重置同时清空分文件并还原浮窗。修复 Windows 中文路径下正常测试入口读取范本失败；1196 项 C++ 检查通过，真实玩家路线完成 45 次购买。完整验收与按钮覆盖见 docs/review-0.2.6.md。
-
-0.2.5  —  2026-11-11
-
-技能树支持左键按住拖动，横向、纵向跟随鼠标移动；节点上也能起拖。轻点仍用于解锁或查看详情，移动超过 6px 后只拖动，不会误点技能。保留滚轮、滚动条和详情面板操作；区域外松手、失焦或关闭面板时结束拖动。
-
-0.2.4  —  2026-11-11
-
-代码默认 20px，优化结构配色并修复主编辑器高亮失效。默认框架受保护，正文、辅助函数和头文件仍可编辑。报错显示行列位置与修改建议，柔和呈现并定位代码。自动通关 45 次购买、139 项路线检查、1167 项 C++ 测试通过；发现的教学节奏和长期运行问题已记录在项目流程检查文档。保留现有生产规则。
-
-0.2.3  —  2026-11-11
-
-图标与按钮改为柔和圆角方形，保持正方形绘制比例。悬停渐亮，按下短促收紧，松开平滑恢复。技能树、设置、日志新增面板内导航，选中底板柔和平移，内容随方向短距离平移淡入；连续切换会接续当前状态。分文件切换保留按钮并淡入代码。保留现有字体、相机、运行语义和农场规则。
-
-0.2.2  —  2026-11-11
-
-每个技能都有一份「范本」：正常通关测试真正跑过的那段程序。范本一步只多一个新概念，解锁后在提示窗口和技能详情里显示，可折叠、一键复制，高亮和代码区一致。提示先用一句话说清痛点，再给范本。地图改成左键按住地面拖动平移，松手后有一点轻微惯性。
-
-范本与通关
-• 新增从全新存档出发、只用玩家操作的整局通关测试，按课程表顺序买完所有节点，每一档都验证「先痛后药」。全程约 52 分钟游戏时间，最长一档约 5 分钟，没有长时间挂机。
-• 范本放在 game/exemplars/，测试与游戏读同一份文件；另有测试保证每个节点都有能解析、能运行的范本。
-
-规则调整与修复
-• 移动只花半个动作，边走边收比原地收更划算。
-• 胡萝卜只花干草，不再花木头，避免木头被吃光卡关。
-• 仙人掌排序和成片判断不再跨边缘环绕；恐龙苹果在田满时也能找到落点；收割枯萎南瓜会清掉它；新一次运行会结束上一次的迷宫；空着的草地会重新长草。
-• 解释器：实数四则运算、二维数组参数、文件级常量对函数和无人机可见、解锁名不区分大小写；get_time() 需要「计时」；变量未解锁时用 for 的 i 会给出清楚提示。
-
-操作
-• 左键在地面上按住拖动平移地图，地面跟着鼠标走；有一小段拖动阈值，点击仍是点击。拖动时显示抓手光标。在窗口、按钮上按下左键只操作界面。右键转动、滚轮缩放、WASD、F 回正和中键平移都保留。
-
-0.2.1  —  2026-11-11
-
-补上可复现的 simulate()，画面能同时看到多台无人机，解锁分文件后可切换新建用户文件，大田用地块合批和降频动画。技能树节点对齐、连线改成圆润分支，后期节点容易扫到；胡萝卜、树、向日葵、南瓜、仙人掌、迷宫篱笆和宝藏更好认；顶栏资源图标各不相同。去掉小 bot 脚下的圆环，田下不再是带清晰圆边的正圆岛屿。系统界面字再加大约 2px，字色和字重更柔和，行距字距略松；代码区仍是 JetBrains Mono 18px。
-
-0.2.0  —  2026-11-11
-
-按原作 1.0 主线把全部技能与作物一次落地。技能树可滚动，顶栏按解锁显示多种资源。种植、浇水、树木、向日葵、南瓜、迷宫、仙人掌、伴侣、恐龙帽和多无人机都按课程表机制运行，而不是只加图标。
-
-内容
-• 技能树覆盖循环、加速、条件、移动、计数、耕地、种植、扩田、变量、常量、运算、感知、胡萝卜、成本查询、浇水、树木、函数、引用、分文件、向日葵、数组、结构体、分支、南瓜、工具函数、肥料、迷宫、仙人掌、伴侣、恐龙、多机、打印、计时、实验、模拟、自动解锁和帽子。
-• 花费按课程表压缩值；多种货币可花余额与累计产量分开。扩田会清场并增大边长，请用 get_world_size()。
-• 浇水、邻树惩罚、向日葵花瓣与连罚、南瓜枯死与 n³、迷宫生成与错收消失、仙人掌排序后 n²、伴侣种植、恐龙帽蛇规则、多机无共享内存都在模拟器里实现。
-• 3D 作物用原创风格化模型区分，不是原作贴图。DLC 采矿、水稻、竹子只留接口，不挡主线。
-
-界面
-• 系统字与 0.1.5 相同：Noto Sans CJK、较大字号；代码区 JetBrains Mono 18。缩放手柄仍是透明点击区加淡 L 线。
-• 实心三角仍是跑完 main 即停，空心三角单步。开局收割与生长仍是 400 tick；加速只缩短动作。
-
-0.1.5  —  2026-11-11
-
-实心三角改为把 main 跑完就停，不再自动重跑；空心三角改为单步。失败收割和成功收割花同样的时间，开局一刀刚好等草长熟。循环和条件之间加了「加速」技能，速度改由技能决定。系统字更大，窗口缩放手柄不再留下色块，视角跟手一些。
-
-运行
-• 实心三角是「运行」：完整执行一遍 main，结束即停，草地仍继续生长。空心三角是「单步」：每次只执行一条语句或一个农场动作，然后暂停。点进代码区仍会停止。不再提供自动反复执行 main 的模式。
-
-解锁
-• 成功收割和失败收割都花费完整动作时间；查询仍是 1 tick。开局一次 harvest 约为 1 秒，和草的生长时间相同，所以 while (true) { harvest(); } 能一刀接一刀收到成熟草。
-• 设置里不再让玩家自己拉速度。在「循环」（5 干草）之后花费 8 干草解锁「加速」，动作大约变为 2 倍快，此时纯 while 收割会打在未熟的草上。再花费 12 干草解锁「条件」。之后仍是移动 20、计数 30、耕地 40、种植 60。
-
-相机与界面
-• 右键转动 1:1 跟鼠标，WASD 松开即停，平移像抓住地面拖动，滚轮以鼠标指向为参考缩放。
-• 系统界面字号加大，使用 Noto Sans CJK（SIL OFL）。代码区仍是 18 号 JetBrains Mono。
-• 窗口右下角缩放手柄改为透明点击区，只用很淡的 L 形线条提示，不再留下金色色块。
-
-0.1.4  —  2026-11-11
-
-按试玩反馈修了眼睛、鼠标、视角和界面动效。
-
-农场与角色
-• 小 bot 的眼睛改成贴在豆子身体正面的黑色竖长条（圆角胶囊），没有屏幕或脸板，也没有高光白点。眨眼时条会轻轻合上。
-
-相机与鼠标
-• 修了鼠标拖动卡住：在空地按下右键或中键开始观察后，即使在按钮或窗口上松开，也会结束拖动；窗口失焦或按 Esc 同样清掉拖动状态。左键不再平移视角，只用来点界面；点农田空地把键盘焦点还给相机。
-• 视角改成常见的自由观察：按住右键原地转动（不再绕远处锚点滑），WASD 沿当前视角水平移动，空格上升、Shift 下降，中键或 Shift+右键平移，滚轮靠近或拉远。转动跟手，松开即停。在任何界面上滚动或拖动都不会带动相机。按 F 或点回正，回到田在右侧空地的斜俯视。
-
-界面
-• 代码 / 提示窗口打开时淡入并从 0.96 放到 1，关闭淡出；最小化收到标题栏、还原展开，尺寸变化保持平滑。
-• 技能树、设置、日志的背景淡入，卡片略上移再落下。顶栏图标、运行按钮和窗口 ─ ☐ ✕ 悬停轻微提亮并放到约 1.05，按下收到 0.96，松开回弹。技能详情弹出保持柔和。
-
-————————
-
-0.1.3  —  2026-11-11
-
-把图标、窗口按钮和小 bot 再做柔和一些。
-
-界面
-• 全部图标改为粗圆的面性 / 半面性风格（填充或半透明底 + 粗描边），线宽约为原来的 1.5–2 倍，端点和拐角大圆角，形状更胖更简单；深色底上用偏暖的奶白，避免刺眼纯白。「条件」是带问号的菱形，不再像人字。
-• 代码 / 提示窗口的 ─ ☐ ✕ 做成浅底色圆角小框，悬停略亮，关闭悬停为柔和珊瑚红。
-• 运行按钮改成圆润的胶囊框，三角顶点倒圆角，配色为柔和的鼠尾草绿。实心为持续运行、空心为运行一次，运行中仍变为停止并有轻微脉动。
-
-农场与角色
-• 小 bot 重新建模：单一豆子 / 胶囊身体（没有单独的大头和脚，轻微悬浮），正面一块圆角深色小屏幕，两只柔和发光的圆眼会眨，浅绿腰带，两只短圆手臂。去掉螺旋桨。手里斜握一把长约身高 0.8 的小锄头（暖木柄 + 柔和灰绿金属头，举在头顶一侧）。配色暖奶白、浅绿和暖木，材质哑光，并带轻微描边，避免过曝成一团白。
-• 待机轻轻上下晃，移动时轻微前倾；收割和耕地时用锄头做柔和的挖 / 割动作；do_a_flip() 会翻身；出错卡住时轻抖。
-
-————————
-
-0.1.2  —  2026-11-11
-
-把界面再收一收：少文字、多图标，并把小草、机器人和相机手感磨顺。
-
-农场与角色
-• 小草叶片有弯曲、粗细变化和轻微摆动，成熟时带一点暖色微光。
-• 无人机换成会动的小 bot：屏幕脸会眨眼，待机漂浮，移动时倾斜，收割会点头，do_a_flip() 会真翻跟头。
-
-界面
-• 代码 / 提示窗口的最小化、全屏、关闭是绘制出来的 ─ ☐ ✕，像桌面客户端；全屏后变为还原的双方框，关闭悬停为红色。
-• 顶栏用图标：干草捆 + 数字，代码、技能、提示、设置、日志和回正视角都带简短 tooltip。技能卡片改以图标为主，文字缩短。
-• 运行入口在代码窗口标题栏：实心三角持续运行（main 结束后自动再跑），空心三角只跑一遍。点进代码区会停止。顶栏不再放运行 / 停止。
-• 在代码区按 Shift+滚轮缩放字号（12–32px），右下角短暂显示百分比；Ctrl+0 或双击百分比复位。本次会话会记住字号。代码区滚轮不会带动相机。
-
-相机
-• 右键拖动环绕旋转，左键在空地拖动或中键拖动平移，滚轮缩放。WASD 相对视角在水平面移动，空格上升、Shift 下降。俯仰、缩放、高度和平移都有范围，并带阻尼。
-• 默认斜俯视，田地在代码窗口右侧居中。按 F、双击空地或点回正视角可复位。编辑器或文本框有焦点时，键盘只输入文字，不会移动相机。
-
-已知限制
-• 干草改为可花的货币：在技能树点击灰色图标解锁技能（循环 5、条件 10、移动 20、计数 30、耕地 40、种植 60）。累计收获不再自动解锁。变量、函数仍只在技能树中预告。
-
-————————
-
-0.1.1  —  2026-11-11
-
-在 0.1.0 之后补上耕地、种植，并按「先痛后药」重排技能树。界面改成方块田与可拖动的代码 / 提示窗口。
-
-编程
-• 开局只有 harvest() 和 do_a_flip()。if 与 can_harvest() 不再一开始就给。
-• 技能树花费干草解锁：while 5、if 与 can_harvest() 10、move 20（同时扩大为 3×3）、for 30、till 40、plant(Bush) 与 get_entity_type() / get_ground_type() 以及 == / != 共 60。前置未开或干草不够时不能购买。
-• for 用来走过 3×3 的田垄，不必把 move 手写很多遍。循环变量暂时还不能参与运算。
-• 仍用标准 C++ 形态：#include、using namespace std;、int main()。
-
-农场
-• 田块改成带侧边和轻微倒角的泥土方块，草长在顶面，像小的立体微缩格。
-• till() 把草地翻成耕地（毁掉上面的植物），再翻一次变回草地。plant(Bush) 只能种在空的耕地上，成熟后收割得到木头。
-• 解锁花的是当前背包里的干草，不是累计收获。
-
-界面
-• 代码和提示是真正的窗口：可拖动、最小化、全屏、关闭，并记住本次位置。关闭后用顶栏的「代码」「提示」重新打开。提示正文可滚动，全屏代码时会把提示收起到标题栏，避免挡住编辑器，退出全屏后恢复原状。
-• 编辑器、补全、提示、技能树和设置共用一套暖鼠尾草、奶油与哑光金的主题，代码用 JetBrains Mono。技能树卡片加宽、减少折行。
-
-已知限制
-• 变量、自定义函数、数组和结构体等后续 C++ 节点仅在技能树中预告。
-• 语言仍是很小的 C++ 子集。
-
-————————
-
-0.1.0  —  2026-11-10
-
-Codefarm 第一个可玩的公开预览版。开局 1×1 草地，累计 5 个干草解锁 while，15 个解锁移动（0.1.1 起改为 20，并增补判断与耕地）。
-"""
-
-const SAGE_BG := Color(0.16, 0.20, 0.18, 0.94)
-const SAGE_DEEP := Color(0.11, 0.14, 0.13, 0.97)
-const CREAM := Color(0.93, 0.91, 0.85, 1)
-const GOLD := Color(0.78, 0.62, 0.38, 1)
-const GOLD_SOFT := Color(0.80, 0.70, 0.50, 1)
-const TEXT := Color(0.90, 0.88, 0.82, 1)
-const TEXT_DIM := Color(0.80, 0.78, 0.72, 1)
-const DANGER := Color(0.86, 0.46, 0.38, 1)
-# Syntax: distinct roles, all in the same sage / cream / gold family.
-const SYN_KEYWORD := Color(0.79, 0.72, 0.91, 1)
-const SYN_TYPE := Color(0.62, 0.79, 0.88, 1)
-const SYN_FUNC := Color(0.70, 0.84, 0.66, 1)
-const SYN_NUMBER := Color(0.91, 0.77, 0.57, 1)
-const SYN_ENUM := Color(0.65, 0.83, 0.78, 1)
-const SYN_STD := Color(0.73, 0.80, 0.85, 1)
-const SYN_SYMBOL := Color(0.73, 0.77, 0.73, 1)
-const SYN_COMMENT := Color(0.59, 0.67, 0.61, 1)
-const SYN_PREPROC := Color(0.65, 0.76, 0.73, 1)
-const SYN_STRING := Color(0.87, 0.81, 0.62, 1)
-const SYN_IDENT := Color(0.90, 0.92, 0.87, 1)
 
 @onready var host: CodefarmHost = $CodefarmHost
 @onready var drone: Node3D = $Farm/Drone
@@ -278,9 +70,6 @@ var overlay_title: Label
 var overlay_body: Control
 var overlay_close: Button
 
-var _font_ui: Font
-var _font_ui_bold: Font
-var _font_mono: Font
 var _font_size: int = 20
 var _font_size_default: int = 20
 var _font_display: float = 18.0
@@ -305,7 +94,6 @@ var _pending_t: float = 0.0
 var _hover_t: float = 0.0
 var _pending_paren_adjust: bool = false
 var _completion_prefix: String = ""
-var _theme: Theme
 var code_window: PanelContainer
 var hint_window: PanelContainer
 var code_btn: Button
@@ -346,6 +134,7 @@ var _active_file := "main.cpp"
 var camera_rig: FarmCameraRig
 var bot: FarmBot
 var field: FarmField
+var ui: FarmUiKit
 const FONT_SIZE_MIN := 12
 const FONT_SIZE_MAX := 32
 
@@ -379,8 +168,7 @@ func _ready() -> void:
 	field.size_changed.connect(func(size: int) -> void: camera_rig.apply_home(size, false))
 	farm_tile.visible = false
 	grass_placeholder.visible = false
-	_setup_fonts()
-	_setup_theme()
+	_setup_ui_kit()
 	_build_ui()
 	_setup_highlighter()
 	_setup_completion()
@@ -472,12 +260,12 @@ func _build_menu() -> void:
 	_menu.name = "Welcome"
 	_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_menu.mouse_filter = Control.MOUSE_FILTER_STOP
-	_menu.theme = _theme
+	_menu.theme = ui.theme
 	$UI.add_child(_menu)
 	var title := Label.new()
 	title.text = "Codefarm"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_font(title, 38, SAGE_DEEP, true)
+	ui.apply_font(title, 38, FarmPalette.SAGE_DEEP, true)
 	_menu.add_child(title)
 	# Anchor first, then offsets: assigning position/size here is absolute and
 	# pushed the title and the start button off-screen.
@@ -495,7 +283,7 @@ func _build_menu() -> void:
 	actions.offset_right = 150
 	actions.offset_top = -166
 	actions.offset_bottom = -22
-	_start_button = _make_button("继续游戏" if _has_save else "开始游戏", false, 240)
+	_start_button = ui.make_button("继续游戏" if _has_save else "开始游戏", false, 240)
 	_start_button.name = "StartGame"
 	_start_button.custom_minimum_size = Vector2(300, 64)
 	_start_button.pressed.connect(start_game)
@@ -504,7 +292,7 @@ func _build_menu() -> void:
 	_save_notice.text = _save_message if not _save_message.is_empty() else _save_summary() if _has_save else "写下第一行，让农场生长"
 	_save_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_save_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(_save_notice, 17, SAGE_DEEP)
+	ui.apply_font(_save_notice, 17, FarmPalette.SAGE_DEEP)
 	actions.add_child(_save_notice)
 	_start_button.grab_focus()
 
@@ -686,233 +474,19 @@ func _exit_tree() -> void:
 	_save_now()
 
 
-func _load_font_file(path: String) -> FontFile:
-	# Exported font paths resolve to imported .fontdata, not raw source bytes.
-	var font: FontFile
-	if ResourceLoader.exists(path):
-		font = ResourceLoader.load(path) as FontFile
-		if font:
-			font = font.duplicate()
-	if font == null:
-		font = FontFile.new()
-		if font.load_dynamic_font(path) != OK:
-			return null
-	font.antialiasing = TextServer.FONT_ANTIALIASING_LCD
-	font.hinting = TextServer.HINTING_LIGHT
-	font.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_AUTO
-	return font
-
-
-func _ui_font_with_fallback(base: Font, fallbacks: Array) -> Font:
-	if base == null:
-		return null
-	var extras: Array = []
-	for item in fallbacks:
-		if item and item != base:
-			extras.append(item)
-	if extras.is_empty():
-		return base
-	var variation := FontVariation.new()
-	variation.base_font = base
-	variation.fallbacks = extras
-	return variation
-
-
-
-func _soften_ui_font(base: Font, embolden: float = 0.0) -> Font:
-	if base == null:
-		return null
-	var v := FontVariation.new()
-	if base is FontVariation:
-		var src := base as FontVariation
-		v.base_font = src.base_font
-		v.fallbacks = src.fallbacks
-	else:
-		v.base_font = base
-	v.spacing_glyph = 1
-	v.spacing_space = 1
-	v.spacing_top = 1
-	v.spacing_bottom = 2
-	if embolden != 0.0:
-		v.variation_embolden = embolden
-	return v
-
-
-func _setup_fonts() -> void:
-	var droid := _load_font_file("res://fonts/DroidSansFallback.ttf")
-	var noto := _load_font_file("res://fonts/NotoSansCJKsc-Regular.otf")
-	var noto_bold := _load_font_file("res://fonts/NotoSansCJKsc-Bold.otf")
-	var cjk: Font = noto if noto else droid
-	var cjk_bold: Font = noto_bold if noto_bold else cjk
-	var mono := _load_font_file("res://fonts/JetBrainsMono-Regular.ttf")
-	if mono == null:
-		mono = _load_font_file("res://fonts/NotoSansMono.ttf")
-	if mono and cjk:
-		var code_font := FontVariation.new()
-		code_font.base_font = mono
-		code_font.fallbacks = [cjk]
-		_font_mono = code_font
-	elif mono:
-		_font_mono = mono
-	_font_ui = _soften_ui_font(_ui_font_with_fallback(cjk, [droid]), 0.0)
-	# Slight embolden on regular, not the heavy Bold cut — softer weight for titles.
-	_font_ui_bold = _soften_ui_font(_ui_font_with_fallback(cjk, [cjk_bold, droid]), 0.32)
-
-
-func _setup_theme() -> void:
-	_theme = Theme.new()
-	if _font_ui:
-		_theme.default_font = _font_ui
-	_theme.default_font_size = 20
-	_theme.set_color("font_color", "Label", TEXT)
-	_theme.set_color("font_color", "Button", CREAM)
-	_theme.set_color("font_hover_color", "Button", CREAM)
-	_theme.set_color("font_pressed_color", "Button", CREAM)
-	_theme.set_color("font_disabled_color", "Button", TEXT_DIM)
-	_theme.set_color("font_color", "TooltipLabel", CREAM)
-	_theme.set_font_size("font_size", "TooltipLabel", 18)
-	_theme.set_font_size("font_size", "Label", 20)
-	_theme.set_color("font_color", "PopupMenu", CREAM)
-	_theme.set_color("font_hover_color", "PopupMenu", CREAM)
-	_theme.set_color("font_accelerator_color", "PopupMenu", TEXT_DIM)
-	_theme.set_color("font_color", "ItemList", CREAM)
-	_theme.set_color("font_hovered_color", "ItemList", CREAM)
-	_theme.set_color("font_selected_color", "ItemList", CREAM)
-	if _font_mono:
-		_theme.set_font("font", "CodeEdit", _font_mono)
-		_theme.set_font("font", "TextEdit", _font_mono)
-		_theme.set_font("font", "LineEdit", _font_ui if _font_ui else _font_mono)
-	if _font_ui:
-		for typ in ["Label", "Button", "TooltipLabel", "PopupMenu", "ItemList", "CheckBox", "RichTextLabel", "OptionButton"]:
-			_theme.set_font("font", typ, _font_ui)
-	var panel := _flat(SAGE_BG, 16, Vector4(16, 12, 16, 12), 10)
-	var deep := _flat(SAGE_DEEP, 16, Vector4(16, 12, 16, 12), 12)
-	var tip := _flat(SAGE_DEEP, 10, Vector4(12, 8, 12, 8), 8)
-	var popup := _flat(Color(0.14, 0.17, 0.15, 0.98), 10, Vector4(8, 6, 8, 6), 8)
-	popup.border_color = Color(0.78, 0.62, 0.38, 0.35)
-	popup.set_border_width_all(1)
-	_theme.set_stylebox("panel", "PanelContainer", panel)
-	_theme.set_stylebox("panel", "Panel", panel)
-	_theme.set_stylebox("panel", "PopupPanel", popup)
-	_theme.set_stylebox("panel", "PopupMenu", popup)
-	_theme.set_stylebox("hover", "PopupMenu", _flat(Color(0.78, 0.64, 0.42, 0.30), 6, Vector4(8, 4, 8, 4)))
-	_theme.set_stylebox("panel", "TooltipPanel", tip)
-	_theme.set_stylebox("tooltip", "PopupMenu", tip)
-	_theme.set_stylebox("normal", "Button", _flat(Color(0.30, 0.36, 0.32, 0.95), 9, Vector4(14, 6, 14, 6)))
-	_theme.set_stylebox("hover", "Button", _flat(Color(0.36, 0.42, 0.37, 1), 9, Vector4(14, 6, 14, 6)))
-	_theme.set_stylebox("pressed", "Button", _flat(Color(0.42, 0.38, 0.26, 1), 9, Vector4(14, 6, 14, 6)))
-	_theme.set_stylebox("disabled", "Button", _flat(Color(0.24, 0.27, 0.25, 0.7), 9, Vector4(14, 6, 14, 6)))
-	_theme.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	var scroll := _flat(Color(0.22, 0.26, 0.23, 0.95), 6, Vector4(0, 0, 0, 0))
-	scroll.set_corner_radius_all(6)
-	var grab := _flat(Color(0.70, 0.56, 0.32, 0.85), 6, Vector4(0, 0, 0, 0))
-	for bar in ["VScrollBar", "HScrollBar"]:
-		_theme.set_stylebox("scroll", bar, scroll)
-		_theme.set_stylebox("grabber", bar, grab)
-		_theme.set_stylebox("grabber_highlight", bar, _flat(GOLD_SOFT, 6, Vector4(0, 0, 0, 0)))
-		_theme.set_stylebox("grabber_pressed", bar, _flat(GOLD, 6, Vector4(0, 0, 0, 0)))
-		_theme.set_stylebox("scroll_focus", bar, scroll)
-	var ed := _flat(Color(0.10, 0.12, 0.11, 1), 10, Vector4(10, 8, 10, 8))
-	_theme.set_stylebox("normal", "CodeEdit", ed)
-	_theme.set_stylebox("focus", "CodeEdit", ed)
-	_theme.set_stylebox("read_only", "CodeEdit", ed)
-	_theme.set_stylebox("completion", "CodeEdit", popup)
-	_theme.set_color("background_color", "CodeEdit", Color(0.09, 0.11, 0.10, 1))
+func _setup_ui_kit() -> void:
+	ui = FarmUiKit.new()
+	ui.load_fonts()
+	var theme := ui.build_theme()
 	if ui_root:
-		ui_root.theme = _theme
+		ui_root.theme = theme
 	var win := get_window()
 	if win:
-		win.theme = _theme
-
-
-func _flat(color: Color, radius: int = 12, pad := Vector4(16, 12, 16, 12), shadow: int = 0) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = pad.x
-	sb.content_margin_top = pad.y
-	sb.content_margin_right = pad.z
-	sb.content_margin_bottom = pad.w
-	if shadow > 0:
-		sb.shadow_color = Color(0, 0, 0, 0.16)
-		sb.shadow_size = shadow
-		sb.shadow_offset = Vector2(0, 2)
-	return sb
-
-
-func _apply_font(node: Control, size: int = 20, color: Color = TEXT, bold: bool = false) -> void:
-	var font: Font = _font_ui_bold if bold and _font_ui_bold else _font_ui
-	if font:
-		node.add_theme_font_override("font", font)
-	node.add_theme_font_size_override("font_size", size)
-	if node is Label:
-		node.add_theme_constant_override("line_spacing", 8)
-	if node is RichTextLabel:
-		node.add_theme_constant_override("line_separation", 8)
-	if node is Label or node is Button or node is RichTextLabel:
-		node.add_theme_color_override("font_color", color)
-
-
-func _make_button(text: String, gold := false, min_w := 76) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.custom_minimum_size = Vector2(min_w, 44)
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var normal := _flat(Color(0.30, 0.36, 0.32, 0.95) if not gold else Color(0.70, 0.50, 0.28, 1), 9, Vector4(14, 6, 14, 6))
-	var hover := _flat(Color(0.36, 0.42, 0.37, 1) if not gold else Color(0.78, 0.58, 0.34, 1), 9, Vector4(14, 6, 14, 6))
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", hover)
-	btn.add_theme_stylebox_override("disabled", _flat(Color(0.24, 0.27, 0.25, 0.7), 9, Vector4(14, 6, 14, 6)))
-	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	_apply_font(btn, 20, CREAM)
-	FarmMotion.bind_hover.call_deferred(btn)
-	return btn
-
-
-func _make_icon_button(kind: FarmIcon.Kind, tip: String, gold := false, min_size := Vector2(52, 52)) -> Button:
-	var btn := _make_button("", gold, int(min_size.x))
-	btn.text = ""
-	btn.tooltip_text = tip
-	var edge := maxf(min_size.x, min_size.y)
-	btn.custom_minimum_size = Vector2(edge, edge)
-	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	btn.add_theme_stylebox_override("normal", _flat(Color(0.30, 0.36, 0.32, 0.95) if not gold else Color(0.70, 0.50, 0.28, 1), 9, Vector4(6, 4, 6, 4)))
-	btn.add_theme_stylebox_override("hover", _flat(Color(0.36, 0.42, 0.37, 1) if not gold else Color(0.78, 0.58, 0.34, 1), 9, Vector4(6, 4, 6, 4)))
-	btn.add_theme_stylebox_override("pressed", _flat(Color(0.42, 0.38, 0.26, 1) if not gold else Color(0.78, 0.58, 0.34, 1), 9, Vector4(6, 4, 6, 4)))
-	var icon := FarmIcon.new()
-	icon.kind = kind
-	icon.icon_color = Color(0.88, 0.84, 0.76, 1) if not gold else Color(0.90, 0.84, 0.70, 1)
-	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	icon.offset_left = 8
-	icon.offset_top = 8
-	icon.offset_right = -8
-	icon.offset_bottom = -8
-	btn.add_child(icon)
-	btn.set_meta("farm_icon", icon)
-	return btn
-
-
-func _resource_chip(kind: FarmIcon.Kind, name: String, tint: Color = Color(0, 0, 0, 0)) -> Dictionary:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 4)
-	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var icon := FarmIcon.new()
-	icon.kind = kind
-	icon.custom_minimum_size = Vector2(28, 28)
-	icon.icon_color = tint if tint.a > 0.0 else GOLD_SOFT
-	row.add_child(icon)
-	var label := Label.new()
-	label.name = name
-	label.text = "0"
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_font(label, 22, GOLD_SOFT, false)
-	row.add_child(label)
-	return {"row": row, "label": label, "icon": icon}
+		win.theme = theme
 
 
 func _build_ui() -> void:
-	ui_root.theme = _theme
+	ui_root.theme = ui.theme
 
 	var top := PanelContainer.new()
 	top.name = "TopBar"
@@ -922,7 +496,7 @@ func _build_ui() -> void:
 	top.offset_top = 14
 	top.offset_bottom = 84
 	top.mouse_filter = Control.MOUSE_FILTER_STOP
-	top.add_theme_stylebox_override("panel", _flat(SAGE_BG, 16, Vector4(20, 10, 20, 10), 10))
+	top.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_BG, 16, Vector4(20, 10, 20, 10), 10))
 	ui_root.add_child(top)
 
 	var top_row := HBoxContainer.new()
@@ -934,13 +508,13 @@ func _build_ui() -> void:
 	title_label.name = "TitleLabel"
 	title_label.text = "Codefarm"
 	title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_font(title_label, 24, CREAM, true)
+	ui.apply_font(title_label, 24, FarmPalette.CREAM, true)
 	top_row.add_child(title_label)
 
 	var ver := Label.new()
 	ver.text = VERSION
 	ver.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_font(ver, 17, TEXT_DIM)
+	ui.apply_font(ver, 17, FarmPalette.TEXT_DIM)
 	title_label.tooltip_text = "Codefarm " + VERSION
 	ver.queue_free()
 	var resource_scroll := ScrollContainer.new()
@@ -956,12 +530,12 @@ func _build_ui() -> void:
 	resources.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	resource_scroll.add_child(resources)
 
-	var hay_chip := _resource_chip(FarmIcon.Kind.HAY, "HayLabel", FarmIcon.item_color("hay", GOLD_SOFT))
+	var hay_chip := ui.resource_chip(FarmIcon.Kind.HAY, "HayLabel", FarmIcon.item_color("hay", FarmPalette.GOLD_SOFT))
 	hay_chip["row"].tooltip_text = "干草余额"
 	hay_label = hay_chip["label"]
 	resources.add_child(hay_chip["row"])
 
-	var wood_chip := _resource_chip(FarmIcon.Kind.WOOD, "WoodLabel", FarmIcon.item_color("wood", GOLD_SOFT))
+	var wood_chip := ui.resource_chip(FarmIcon.Kind.WOOD, "WoodLabel", FarmIcon.item_color("wood", FarmPalette.GOLD_SOFT))
 	wood_chip["row"].tooltip_text = "木头"
 	wood_wrap = wood_chip["row"]
 	wood_label = wood_chip["label"]
@@ -980,7 +554,7 @@ func _build_ui() -> void:
 		["cactus", "仙人掌"],
 		["bone", "骨头"],
 	]:
-		var chip := _resource_chip(FarmIcon.kind_from_item(spec[0]), spec[0] + "Label", FarmIcon.item_color(spec[0], GOLD_SOFT))
+		var chip := ui.resource_chip(FarmIcon.kind_from_item(spec[0]), spec[0] + "Label", FarmIcon.item_color(spec[0], FarmPalette.GOLD_SOFT))
 		chip["row"].tooltip_text = spec[1]
 		chip["row"].visible = false
 		resources.add_child(chip["row"])
@@ -992,17 +566,17 @@ func _build_ui() -> void:
 
 	run_button = null
 	stop_button = null
-	code_btn = _make_icon_button(FarmIcon.Kind.CODE, "代码")
+	code_btn = ui.make_icon_button(FarmIcon.Kind.CODE, "代码")
 	code_btn.name = "CodeButton"
-	skill_button = _make_icon_button(FarmIcon.Kind.SKILL, "技能树")
+	skill_button = ui.make_icon_button(FarmIcon.Kind.SKILL, "技能树")
 	skill_button.name = "SkillButton"
-	hint_button = _make_icon_button(FarmIcon.Kind.HINT, "提示")
+	hint_button = ui.make_icon_button(FarmIcon.Kind.HINT, "提示")
 	hint_button.name = "HintButton"
-	settings_button = _make_icon_button(FarmIcon.Kind.SETTINGS, "设置")
+	settings_button = ui.make_icon_button(FarmIcon.Kind.SETTINGS, "设置")
 	settings_button.name = "SettingsButton"
-	log_button = _make_icon_button(FarmIcon.Kind.LOG, "更新日志")
+	log_button = ui.make_icon_button(FarmIcon.Kind.LOG, "更新日志")
 	log_button.name = "LogButton"
-	reset_cam_button = _make_icon_button(FarmIcon.Kind.RESET_CAM, "回正视角")
+	reset_cam_button = ui.make_icon_button(FarmIcon.Kind.RESET_CAM, "回正视角")
 	reset_cam_button.name = "ResetCameraButton"
 	for b in [code_btn, skill_button, hint_button, settings_button]:
 		top_row.add_child(b)
@@ -1038,7 +612,7 @@ func _build_ui() -> void:
 	overlay_card.offset_right = 560
 	overlay_card.offset_top = -460
 	overlay_card.offset_bottom = 460
-	overlay_card.add_theme_stylebox_override("panel", _flat(SAGE_DEEP, 20, Vector4(28, 22, 28, 22), 16))
+	overlay_card.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_DEEP, 20, Vector4(28, 22, 28, 22), 16))
 	ui_root.add_child(overlay_card)
 	_fit_overlay()
 	get_viewport().size_changed.connect(_fit_overlay)
@@ -1051,7 +625,7 @@ func _build_ui() -> void:
 	card_v.add_child(head)
 	overlay_title = Label.new()
 	overlay_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(overlay_title, 26, CREAM, true)
+	ui.apply_font(overlay_title, 26, FarmPalette.CREAM, true)
 	head.add_child(overlay_title)
 	_panel_tabs = preload("res://scripts/farm_tabs.gd").new()
 	_panel_tabs.chosen.connect(func(id: String) -> void:
@@ -1059,7 +633,7 @@ func _build_ui() -> void:
 			_toggle_panel(id)
 	)
 	head.add_child(_panel_tabs)
-	overlay_close = _make_icon_button(FarmIcon.Kind.CLOSE, "关闭", false, Vector2(44, 44))
+	overlay_close = ui.make_icon_button(FarmIcon.Kind.CLOSE, "关闭", false, Vector2(44, 44))
 	overlay_close.pressed.connect(_close_panel)
 	head.add_child(overlay_close)
 
@@ -1100,14 +674,14 @@ func _fit_overlay() -> void:
 
 
 func _window_bar_style() -> StyleBoxFlat:
-	return _flat(Color(0.20, 0.24, 0.21, 1), 0, Vector4(12, 6, 10, 6), 0)
+	return ui.flat(Color(0.20, 0.24, 0.21, 1), 0, Vector4(12, 6, 10, 6), 0)
 
 
 func _build_code_window() -> void:
 	code_window = preload("res://scripts/farm_window.gd").new()
 	code_window.name = "CodeWindow"
 	ui_root.add_child(code_window)
-	code_window.setup("代码", _make_button, _flat(SAGE_BG, 16, Vector4(0, 0, 0, 0), 14), _window_bar_style(), _apply_font)
+	code_window.setup("代码", ui.make_button, ui.flat(FarmPalette.SAGE_BG, 16, Vector4(0, 0, 0, 0), 14), _window_bar_style(), ui.apply_font)
 	code_window.min_window_size = Vector2(360, 280)
 	code_window.set_position(_code_default.position)
 	code_window.set_size(_code_default.size)
@@ -1144,7 +718,7 @@ func _build_code_window() -> void:
 	framework_note.name = "FrameworkNote"
 	framework_note.text = "框架已锁定 · 在 main 内编写操作，可在 main 前添加函数"
 	framework_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(framework_note, 14, Color(0.65, 0.75, 0.68))
+	ui.apply_font(framework_note, 14, Color(0.65, 0.75, 0.68))
 	vbox.add_child(framework_note)
 	vbox.add_child(editor_wrap)
 
@@ -1166,26 +740,26 @@ func _build_code_window() -> void:
 	editor.text = STARTER
 	editor.highlight_current_line = true
 	editor.wrap_mode = TextEdit.LINE_WRAPPING_NONE
-	var ed_style := _flat(Color(0.09, 0.11, 0.10, 1), 12, Vector4(14, 12, 14, 12))
+	var ed_style := ui.flat(Color(0.09, 0.11, 0.10, 1), 12, Vector4(14, 12, 14, 12))
 	editor.add_theme_stylebox_override("normal", ed_style)
 	editor.add_theme_stylebox_override("focus", ed_style)
 	editor.add_theme_stylebox_override("read_only", ed_style)
-	if _font_mono:
-		editor.add_theme_font_override("font", _font_mono)
+	if ui.font_mono:
+		editor.add_theme_font_override("font", ui.font_mono)
 	_apply_editor_font_size()
-	editor.add_theme_color_override("font_color", SYN_IDENT)
-	editor.add_theme_color_override("font_readonly_color", TEXT_DIM)
-	editor.add_theme_color_override("caret_color", GOLD_SOFT)
+	editor.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
+	editor.add_theme_color_override("font_readonly_color", FarmPalette.TEXT_DIM)
+	editor.add_theme_color_override("caret_color", FarmPalette.GOLD_SOFT)
 	editor.add_theme_color_override("current_line_color", Color(0.82, 0.68, 0.44, 0.06))
 	editor.add_theme_color_override("selection_color", Color(0.78, 0.62, 0.38, 0.28))
-	editor.add_theme_color_override("font_selected_color", CREAM)
+	editor.add_theme_color_override("font_selected_color", FarmPalette.CREAM)
 	editor.add_theme_color_override("word_highlighted_color", Color(0.78, 0.62, 0.38, 0.16))
-	editor.add_theme_color_override("brace_mismatch_color", DANGER)
+	editor.add_theme_color_override("brace_mismatch_color", FarmPalette.DANGER)
 	editor.add_theme_color_override("font_placeholder_color", Color(0.62, 0.60, 0.54, 0.55))
 	editor.add_theme_color_override("completion_background_color", Color(0.14, 0.17, 0.15, 0.98))
 	editor.add_theme_color_override("completion_selected_color", Color(0.78, 0.64, 0.42, 0.30))
 	editor.add_theme_color_override("completion_existing_color", Color(0.78, 0.64, 0.42, 0.12))
-	editor.add_theme_color_override("completion_font_color", CREAM)
+	editor.add_theme_color_override("completion_font_color", FarmPalette.CREAM)
 	editor.add_theme_color_override("line_number_color", Color(0.70, 0.72, 0.66, 0.90))
 	editor.add_theme_constant_override("caret_width", 2)
 	editor.gui_input.connect(_on_editor_gui_input)
@@ -1221,7 +795,7 @@ func _build_code_window() -> void:
 	font_badge.offset_right = -10
 	font_badge.offset_bottom = -8
 	font_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_apply_font(font_badge, 16, GOLD_SOFT, true)
+	ui.apply_font(font_badge, 16, FarmPalette.GOLD_SOFT, true)
 	font_badge.gui_input.connect(_on_font_badge_input)
 	editor_wrap.add_child(font_badge)
 
@@ -1233,7 +807,7 @@ func _build_code_window() -> void:
 	error_markup = preload("res://scripts/error_markup.gd").new()
 	error_markup.name = "ErrorMarkup"
 	editor_wrap.add_child(error_markup)
-	error_markup.set_editor(editor, _font_ui, _font_mono)
+	error_markup.set_editor(editor, ui.font_ui, ui.font_mono)
 	var diagnostic_dock := ScrollContainer.new()
 	diagnostic_dock.name = "DiagnosticDock"
 	diagnostic_dock.custom_minimum_size = Vector2(0, 112)
@@ -1247,7 +821,7 @@ func _build_hint_window() -> void:
 	hint_window = preload("res://scripts/farm_window.gd").new()
 	hint_window.name = "HintWindow"
 	ui_root.add_child(hint_window)
-	hint_window.setup("提示", _make_button, _flat(SAGE_BG, 16, Vector4(0, 0, 0, 0), 14), _window_bar_style(), _apply_font)
+	hint_window.setup("提示", ui.make_button, ui.flat(FarmPalette.SAGE_BG, 16, Vector4(0, 0, 0, 0), 14), _window_bar_style(), ui.apply_font)
 	hint_window.min_window_size = Vector2(360, 180)
 	hint_window.set_position(_hint_default.position)
 	hint_window.set_size(_hint_default.size)
@@ -1284,11 +858,11 @@ func _build_hint_window() -> void:
 	hint_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint_body_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint_body_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	_apply_font(hint_body_label, 20, TEXT)
+	ui.apply_font(hint_body_label, 20, FarmPalette.TEXT)
 	hint_col.add_child(hint_body_label)
 	hint_next_label = Label.new()
 	hint_next_label.name = "HintNextLabel"
-	_apply_font(hint_next_label, 17, GOLD_SOFT)
+	ui.apply_font(hint_next_label, 17, FarmPalette.GOLD_SOFT)
 	hint_col.add_child(hint_next_label)
 	hint_next_code = CodeEdit.new()
 	hint_next_code.name = "HintNextCode"
@@ -1299,11 +873,11 @@ func _build_hint_window() -> void:
 	hint_next_code.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	hint_next_code.scroll_fit_content_height = true
 	hint_next_code.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if _font_mono:
-		hint_next_code.add_theme_font_override("font", _font_mono)
+	if ui.font_mono:
+		hint_next_code.add_theme_font_override("font", ui.font_mono)
 	hint_next_code.add_theme_font_size_override("font_size", _font_size_default)
-	hint_next_code.add_theme_color_override("font_readonly_color", SYN_IDENT)
-	var next_style := _flat(Color(0.09, 0.11, 0.10, 1), 10, Vector4(12, 10, 12, 10))
+	hint_next_code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
+	var next_style := ui.flat(Color(0.09, 0.11, 0.10, 1), 10, Vector4(12, 10, 12, 10))
 	for state in ["normal", "read_only", "focus"]:
 		hint_next_code.add_theme_stylebox_override(state, next_style)
 	hint_col.add_child(hint_next_code)
@@ -1311,23 +885,23 @@ func _build_hint_window() -> void:
 	next_step.name = "HintNextStep"
 	next_step.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	next_step.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(next_step, 17, TEXT)
+	ui.apply_font(next_step, 17, FarmPalette.TEXT)
 	hint_col.add_child(next_step)
 	var bar := HBoxContainer.new()
 	bar.name = "HintExemplarBar"
 	bar.add_theme_constant_override("separation", 8)
 	hint_col.add_child(bar)
-	hint_exemplar_toggle = _make_button("范本 ▾", false, 90)
+	hint_exemplar_toggle = ui.make_button("范本 ▾", false, 90)
 	hint_exemplar_toggle.name = "HintExemplarToggle"
 	hint_exemplar_toggle.tooltip_text = "展开或收起范本"
 	hint_exemplar_toggle.pressed.connect(_toggle_hint_exemplar)
 	bar.add_child(hint_exemplar_toggle)
-	hint_copy_button = _make_button("复制", false, 88)
+	hint_copy_button = ui.make_button("复制", false, 88)
 	hint_copy_button.name = "HintCopyExemplar"
 	hint_copy_button.tooltip_text = "复制完整主程序到剪贴板"
 	hint_copy_button.pressed.connect(_copy_hint_exemplar)
 	bar.add_child(hint_copy_button)
-	hint_load_button = _make_button("载入", false, 76)
+	hint_load_button = ui.make_button("载入", false, 76)
 	hint_load_button.name = "HintLoadExemplar"
 	hint_load_button.tooltip_text = "替换 main.cpp，并载入配套头文件"
 	hint_load_button.pressed.connect(_load_hint_exemplar)
@@ -1336,7 +910,7 @@ func _build_hint_window() -> void:
 	hint_copied_label.name = "HintCopied"
 	hint_copied_label.text = "已复制"
 	hint_copied_label.visible = false
-	_apply_font(hint_copied_label, 17, GOLD_SOFT)
+	ui.apply_font(hint_copied_label, 17, FarmPalette.GOLD_SOFT)
 	bar.add_child(hint_copied_label)
 	hint_code = CodeEdit.new()
 	hint_code.name = "HintCode"
@@ -1348,13 +922,13 @@ func _build_hint_window() -> void:
 	hint_code.caret_blink = false
 	hint_code.highlight_current_line = false
 	hint_code.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if _font_mono:
-		hint_code.add_theme_font_override("font", _font_mono)
+	if ui.font_mono:
+		hint_code.add_theme_font_override("font", ui.font_mono)
 	hint_code.add_theme_font_size_override("font_size", _font_size_default)
-	hint_code.add_theme_color_override("font_color", SYN_IDENT)
-	hint_code.add_theme_color_override("font_readonly_color", SYN_IDENT)
+	hint_code.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
+	hint_code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
 	hint_code.add_theme_color_override("line_number_color", Color(0.70, 0.72, 0.66, 0.90))
-	var hint_ed := _flat(Color(0.09, 0.11, 0.10, 1), 10, Vector4(12, 10, 12, 10))
+	var hint_ed := ui.flat(Color(0.09, 0.11, 0.10, 1), 10, Vector4(12, 10, 12, 10))
 	hint_code.add_theme_stylebox_override("normal", hint_ed)
 	hint_code.add_theme_stylebox_override("read_only", hint_ed)
 	hint_code.add_theme_stylebox_override("focus", hint_ed)
@@ -1366,9 +940,9 @@ func _build_hint_window() -> void:
 	hint_header_label = Label.new()
 	hint_header_label.name = "HintHeaderName"
 	hint_header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(hint_header_label, 18, TEXT)
+	ui.apply_font(hint_header_label, 18, FarmPalette.TEXT)
 	header_bar.add_child(hint_header_label)
-	hint_header_copy = _make_button("复制", false, 88)
+	hint_header_copy = ui.make_button("复制", false, 88)
 	hint_header_copy.name = "HintCopyHeader"
 	hint_header_copy.tooltip_text = "复制这个头文件"
 	hint_header_copy.pressed.connect(_copy_hint_header)
@@ -1380,7 +954,7 @@ func _build_hint_window() -> void:
 	hint_prose_after.name = "HintAfter"
 	hint_prose_after.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint_prose_after.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(hint_prose_after, 16, TEXT)
+	ui.apply_font(hint_prose_after, 16, FarmPalette.TEXT)
 	hint_col.add_child(hint_prose_after)
 	hint_col.move_child(hint_prose_after, hint_code.get_index())
 	hint_line = hint_body_label
@@ -1670,28 +1244,28 @@ func _try_smart_backspace() -> bool:
 
 func _setup_highlighter() -> void:
 	var hl := CodeHighlighter.new()
-	hl.number_color = SYN_NUMBER
-	hl.symbol_color = SYN_SYMBOL
-	hl.function_color = SYN_FUNC
-	hl.member_variable_color = SYN_IDENT
+	hl.number_color = FarmPalette.SYN_NUMBER
+	hl.symbol_color = FarmPalette.SYN_SYMBOL
+	hl.function_color = FarmPalette.SYN_FUNC
+	hl.member_variable_color = FarmPalette.SYN_IDENT
 	for word in ["while", "if", "else", "for", "return", "using", "namespace", "switch", "case", "break", "default", "continue", "do"]:
-		hl.add_keyword_color(word, SYN_KEYWORD)
+		hl.add_keyword_color(word, FarmPalette.SYN_KEYWORD)
 	for word in ["int", "void", "enum", "class", "struct", "bool", "double", "float", "char", "string", "auto", "const", "constexpr", "include",
 			"Dir", "Entity", "Ground", "Item", "Cost", "Measure", "Companion", "Hat", "Unlock"]:
-		hl.add_keyword_color(word, SYN_TYPE)
-	hl.add_keyword_color("true", SYN_ENUM)
-	hl.add_keyword_color("false", SYN_ENUM)
-	hl.add_keyword_color("std", SYN_STD)
+		hl.add_keyword_color(word, FarmPalette.SYN_TYPE)
+	hl.add_keyword_color("true", FarmPalette.SYN_ENUM)
+	hl.add_keyword_color("false", FarmPalette.SYN_ENUM)
+	hl.add_keyword_color("std", FarmPalette.SYN_STD)
 	for word in ["East", "West", "North", "South", "Grass", "Bush", "None", "Grassland", "Soil",
 			"Tree", "Carrot", "Sunflower", "Pumpkin", "DeadPumpkin", "Cactus", "Treasure", "Hedge", "Apple",
 			"Hay", "Wood", "Water", "Fertilizer", "WeirdSubstance", "Gold", "Bone", "Power",
 			"DinosaurHat", "StrawHat", "TopHat", "Pumpkins"]:
-		hl.add_keyword_color(word, SYN_ENUM)
-	hl.add_color_region("//", "", SYN_COMMENT, true)
-	hl.add_color_region("/*", "*/", SYN_COMMENT, false)
-	hl.add_color_region("#", "", SYN_PREPROC, true)
-	hl.add_color_region("\"", "\"", SYN_STRING, false)
-	hl.add_color_region("'", "'", SYN_STRING, false)
+		hl.add_keyword_color(word, FarmPalette.SYN_ENUM)
+	hl.add_color_region("//", "", FarmPalette.SYN_COMMENT, true)
+	hl.add_color_region("/*", "*/", FarmPalette.SYN_COMMENT, false)
+	hl.add_color_region("#", "", FarmPalette.SYN_PREPROC, true)
+	hl.add_color_region("\"", "\"", FarmPalette.SYN_STRING, false)
+	hl.add_color_region("'", "'", FarmPalette.SYN_STRING, false)
 	editor.syntax_highlighter = hl
 	_code_highlighter = hl
 	editor.highlight_all_occurrences = true
@@ -1791,10 +1365,10 @@ func _on_completion_requested() -> void:
 
 
 func _completion_items() -> Array:
-	var fn := SYN_FUNC
-	var kw := SYN_KEYWORD
-	var sn := SYN_TYPE
-	var en := SYN_ENUM
+	var fn := FarmPalette.SYN_FUNC
+	var kw := FarmPalette.SYN_KEYWORD
+	var sn := FarmPalette.SYN_TYPE
+	var en := FarmPalette.SYN_ENUM
 	var kind_fn := CodeEdit.KIND_FUNCTION
 	var kind_kw := CodeEdit.KIND_PLAIN_TEXT
 	var kind_const := CodeEdit.KIND_CONSTANT
@@ -1807,7 +1381,7 @@ func _completion_items() -> Array:
 		items.append(["move(North)    向北走一格", "move(North)", kind_fn, fn])
 		items.append(["move(South)    向南走一格", "move(South)", kind_fn, fn])
 		for d in ["East", "West", "North", "South"]:
-			items.append([d + "    方向", d, kind_const, GOLD_SOFT])
+			items.append([d + "    方向", d, kind_const, FarmPalette.GOLD_SOFT])
 	if host.for_unlocked():
 		items.append(["for (int i = 0; i < 3; i++)    计数循环，走过一垄", "for (int i = 0; i < 3; i++) {\n        \n    }", kind_kw, sn])
 	if host.till_unlocked():
@@ -1817,7 +1391,7 @@ func _completion_items() -> Array:
 		items.append(["get_entity_type()    脚下的作物", "get_entity_type()", kind_fn, fn])
 		items.append(["get_ground_type()    脚下的地面", "get_ground_type()", kind_fn, fn])
 		for d in ["Bush", "Grass", "None", "Soil", "Grassland"]:
-			items.append([d + "    实体或地面", d, kind_const, GOLD_SOFT])
+			items.append([d + "    实体或地面", d, kind_const, FarmPalette.GOLD_SOFT])
 	items.append(["int    整数类型 / 入口返回值", "int", kind_kw, kw])
 	items.append(["return    结束 main", "return", kind_kw, kw])
 	items.append(["using    例如 using namespace std;", "using", kind_kw, kw])
@@ -1845,7 +1419,7 @@ func _completion_items() -> Array:
 func _dir_items() -> Array:
 	var items: Array = []
 	for d in [["East", "向东"], ["West", "向西"], ["North", "向北"], ["South", "向南"]]:
-		items.append([d[0] + "    " + d[1], d[0], CodeEdit.KIND_CONSTANT, SYN_ENUM])
+		items.append([d[0] + "    " + d[1], d[0], CodeEdit.KIND_CONSTANT, FarmPalette.SYN_ENUM])
 	return items
 
 
@@ -2447,7 +2021,7 @@ func _fill_hint_panel() -> void:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var id := _hint_skill()
 	label.text = "%s：%s\n\n范本\n\n%s" % [_skill_display_name(id), FarmSkillData.pain(id), FarmSkillData.exemplar(id)]
-	_apply_font(label, 20, TEXT)
+	ui.apply_font(label, 20, FarmPalette.TEXT)
 	scroll.add_child(label)
 	label.custom_minimum_size = Vector2(620, 0)
 
@@ -2460,8 +2034,8 @@ func _fill_log_panel() -> void:
 	var label := Label.new()
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.text = CHANGELOG_TEXT
-	_apply_font(label, 20, TEXT)
+	label.text = FarmChangelog.TEXT
+	ui.apply_font(label, 20, FarmPalette.TEXT)
 	scroll.add_child(label)
 	label.custom_minimum_size = Vector2(620, 0)
 
@@ -2482,7 +2056,7 @@ func _fill_settings_panel() -> void:
 		utility_row.add_child(label)
 	var save_status := Label.new()
 	save_status.text = _save_message if not _save_message.is_empty() else "进度自动保存 · 关闭后可继续"
-	_apply_font(save_status, 17, TEXT_DIM)
+	ui.apply_font(save_status, 17, FarmPalette.TEXT_DIM)
 	box.add_child(save_status)
 
 	box.add_child(_settings_label("运行速度"))
@@ -2492,7 +2066,7 @@ func _fill_settings_panel() -> void:
 	if host.speed_unlocked():
 		speed_text = "收割与挥空都随技能加快；草仍长 1 秒，未熟就砍会重新长。"
 	speed_note.text = speed_text
-	_apply_font(speed_note, 19, TEXT)
+	ui.apply_font(speed_note, 19, FarmPalette.TEXT)
 	box.add_child(speed_note)
 
 	box.add_child(_settings_label("编辑器字号"))
@@ -2524,20 +2098,20 @@ func _fill_settings_panel() -> void:
 	var note := Label.new()
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.text = "重置会清空当前干草、木头、累计收获和已解锁的能力，并把农场、窗口和编辑器恢复到开局。字号和声音设置会保留。"
-	_apply_font(note, 18, TEXT_DIM)
+	ui.apply_font(note, 18, FarmPalette.TEXT_DIM)
 	box.add_child(note)
 
 	if _reset_confirming:
 		var warn := Label.new()
 		warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		warn.text = "确认重置农场吗？进度将全部清除，无法撤回。"
-		_apply_font(warn, 20, DANGER)
+		ui.apply_font(warn, 20, FarmPalette.DANGER)
 		box.add_child(warn)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		box.add_child(row)
-		var yes := _make_button("确认重置", true, 120)
-		var no := _make_button("取消", false, 88)
+		var yes := ui.make_button("确认重置", true, 120)
+		var no := ui.make_button("取消", false, 88)
 		yes.pressed.connect(_confirm_reset)
 		no.pressed.connect(func() -> void:
 			_reset_confirming = false
@@ -2546,7 +2120,7 @@ func _fill_settings_panel() -> void:
 		row.add_child(yes)
 		row.add_child(no)
 	else:
-		var reset_btn := _make_button("重置农场", false, 120)
+		var reset_btn := ui.make_button("重置农场", false, 120)
 		reset_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		reset_btn.pressed.connect(func() -> void:
 			_reset_confirming = true
@@ -2558,7 +2132,7 @@ func _fill_settings_panel() -> void:
 func _settings_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
-	_apply_font(label, 20, GOLD_SOFT, true)
+	ui.apply_font(label, 20, FarmPalette.GOLD_SOFT, true)
 	return label
 
 
@@ -2677,19 +2251,19 @@ func _fill_skill_tree() -> void:
 	guide.text = "学习路线 · 左拖 / 滚轮缩放"
 	guide.tooltip_text = "主线向下，支线补充；完整前置见节点提示。左键拖动，滚轮缩放。"
 	guide.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(guide, 17, TEXT)
+	ui.apply_font(guide, 17, FarmPalette.TEXT)
 	toolbar.add_child(guide)
 	var zoom_label := Label.new()
-	_apply_font(zoom_label, 16, TEXT)
+	ui.apply_font(zoom_label, 16, FarmPalette.TEXT)
 	zoom_label.text = "100%"
 	toolbar.add_child(zoom_label)
 	scroll.zoom_changed.connect(func(value: float) -> void: zoom_label.text = "%d%%" % roundi(value * 100.0))
-	var overview := _make_button("全貌", false, 72)
+	var overview := ui.make_button("全貌", false, 72)
 	overview.name = "SkillFitAll"
 	overview.tooltip_text = "缩放到完整技能树"
 	overview.pressed.connect(scroll.fit_all)
 	toolbar.add_child(overview)
-	var actual := _make_button("还原", false, 72)
+	var actual := ui.make_button("还原", false, 72)
 	actual.name = "SkillZoomReset"
 	actual.pressed.connect(func() -> void: scroll.zoom_about(1.0))
 	toolbar.add_child(actual)
@@ -2866,7 +2440,7 @@ func _skill_node_card(node: Dictionary) -> Control:
 		bg = Color(0.15, 0.16, 0.15, 0.72)
 	elif not owned:
 		bg = Color(0.16, 0.17, 0.16, 0.88)
-	var style := _flat(bg, 12, Vector4(6, 5, 6, 4), 2)
+	var style := ui.flat(bg, 12, Vector4(6, 5, 6, 4), 2)
 	if can_buy:
 		style.border_color = Color(0.65, 0.81, 0.64, 0.90)
 		style.set_border_width_all(2)
@@ -2895,7 +2469,7 @@ func _skill_node_card(node: Dictionary) -> Control:
 		icon.icon_color = Color(0.62, 0.62, 0.58, 0.45)
 	else:
 		icon.kind = FarmIcon.kind_from_name(id)
-		icon.icon_color = GOLD_SOFT if owned else Color(0.62, 0.62, 0.58, 0.70)
+		icon.icon_color = FarmPalette.GOLD_SOFT if owned else Color(0.62, 0.62, 0.58, 0.70)
 	icon.custom_minimum_size = Vector2(26, 26)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.add_child(icon)
@@ -2904,7 +2478,7 @@ func _skill_node_card(node: Dictionary) -> Control:
 	title.text = str(node["name"])
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(title, 18, Color(0.84, 0.76, 0.58, 1) if owned else Color(0.74, 0.73, 0.68, 0.78 if not soon else 0.42), false)
+	ui.apply_font(title, 18, Color(0.84, 0.76, 0.58, 1) if owned else Color(0.74, 0.73, 0.68, 0.78 if not soon else 0.42), false)
 	col.add_child(title)
 	var purpose := Label.new()
 	purpose.name = "SkillPurpose"
@@ -2912,7 +2486,7 @@ func _skill_node_card(node: Dictionary) -> Control:
 	purpose.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	purpose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	purpose.custom_minimum_size.x = 0
-	_apply_font(purpose, 12, TEXT_DIM)
+	ui.apply_font(purpose, 12, FarmPalette.TEXT_DIM)
 	purpose.add_theme_constant_override("line_spacing", -4)
 	col.add_child(purpose)
 
@@ -2927,7 +2501,7 @@ func _skill_node_card(node: Dictionary) -> Control:
 		cost.max_lines_visible = 2
 		cost.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		cost.tooltip_text = price_text
-		_apply_font(cost, 12, GOLD if can_buy else Color(0.70, 0.68, 0.62, 0.80), false)
+		ui.apply_font(cost, 12, FarmPalette.GOLD if can_buy else Color(0.70, 0.68, 0.62, 0.80), false)
 		cost.add_theme_constant_override("line_spacing", -4)
 		col.add_child(cost)
 
@@ -2935,7 +2509,7 @@ func _skill_node_card(node: Dictionary) -> Control:
 	shortfall.name = "Shortfall"
 	shortfall.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shortfall.visible = false
-	_apply_font(shortfall, 14, DANGER)
+	ui.apply_font(shortfall, 14, FarmPalette.DANGER)
 	var feedback := Control.new()
 	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(feedback)
@@ -3051,7 +2625,7 @@ func _make_skill_detail() -> PanelContainer:
 	panel.offset_right = 250
 	panel.offset_top = -210
 	panel.offset_bottom = 210
-	panel.add_theme_stylebox_override("panel", _flat(SAGE_DEEP, 16, Vector4(18, 16, 18, 16), 12))
+	panel.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_DEEP, 16, Vector4(18, 16, 18, 16), 12))
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
@@ -3061,9 +2635,9 @@ func _make_skill_detail() -> PanelContainer:
 	var title := Label.new()
 	title.name = "DetailTitle"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(title, 22, GOLD_SOFT, true)
+	ui.apply_font(title, 22, FarmPalette.GOLD_SOFT, true)
 	head.add_child(title)
-	var close := _make_icon_button(FarmIcon.Kind.CLOSE, "关闭", false, Vector2(44, 44))
+	var close := ui.make_icon_button(FarmIcon.Kind.CLOSE, "关闭", false, Vector2(44, 44))
 	close.pressed.connect(func() -> void:
 		_close_skill_detail()
 	)
@@ -3071,12 +2645,12 @@ func _make_skill_detail() -> PanelContainer:
 	var knowledge := Label.new()
 	knowledge.name = "DetailKnowledge"
 	knowledge.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(knowledge, 19, TEXT)
+	ui.apply_font(knowledge, 19, FarmPalette.TEXT)
 	v.add_child(knowledge)
 	var ex_title := Label.new()
 	ex_title.name = "DetailExemplarTitle"
 	ex_title.text = "范本"
-	_apply_font(ex_title, 18, GOLD_SOFT, true)
+	ui.apply_font(ex_title, 18, FarmPalette.GOLD_SOFT, true)
 	v.add_child(ex_title)
 	var code := CodeEdit.new()
 	code.name = "DetailCode"
@@ -3085,12 +2659,12 @@ func _make_skill_detail() -> PanelContainer:
 	code.wrap_mode = TextEdit.LINE_WRAPPING_NONE
 	code.custom_minimum_size = Vector2(0, 168)
 	code.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if _font_mono:
-		code.add_theme_font_override("font", _font_mono)
+	if ui.font_mono:
+		code.add_theme_font_override("font", ui.font_mono)
 	code.add_theme_font_size_override("font_size", 16)
-	code.add_theme_color_override("font_color", SYN_IDENT)
-	code.add_theme_color_override("font_readonly_color", SYN_IDENT)
-	var ed := _flat(Color(0.10, 0.12, 0.11, 1), 10, Vector4(10, 8, 10, 8))
+	code.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
+	code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
+	var ed := ui.flat(Color(0.10, 0.12, 0.11, 1), 10, Vector4(10, 8, 10, 8))
 	code.add_theme_stylebox_override("normal", ed)
 	code.add_theme_stylebox_override("read_only", ed)
 	code.add_theme_stylebox_override("focus", ed)
@@ -3098,12 +2672,12 @@ func _make_skill_detail() -> PanelContainer:
 	var actions := HBoxContainer.new()
 	actions.add_theme_constant_override("separation", 8)
 	v.add_child(actions)
-	var copy_btn := _make_button("复制", false, 88)
+	var copy_btn := ui.make_button("复制", false, 88)
 	copy_btn.name = "CopyTemplate"
 	copy_btn.tooltip_text = "复制完整主程序到剪贴板"
 	copy_btn.pressed.connect(_copy_selected_skill_template)
 	actions.add_child(copy_btn)
-	var insert_btn := _make_button("载入", false, 88)
+	var insert_btn := ui.make_button("载入", false, 88)
 	insert_btn.name = "InsertTemplate"
 	insert_btn.tooltip_text = "替换 main.cpp，并载入配套头文件"
 	insert_btn.pressed.connect(_insert_selected_skill_template)
@@ -3112,7 +2686,7 @@ func _make_skill_detail() -> PanelContainer:
 	copied.name = "CopiedHint"
 	copied.text = "已复制"
 	copied.visible = false
-	_apply_font(copied, 17, GOLD_SOFT)
+	ui.apply_font(copied, 17, FarmPalette.GOLD_SOFT)
 	actions.add_child(copied)
 	return panel
 
@@ -3123,7 +2697,7 @@ func _mark_skill_selection(id: String) -> void:
 	for card in skill_scroll.find_children("Skill_*", "PanelContainer", true, false):
 		if card.has_meta("skill_id"):
 			var style: StyleBoxFlat = card.get_theme_stylebox("panel")
-			style.border_color = GOLD_SOFT if str(card.get_meta("skill_id")) == id else card.get_meta("base_border")
+			style.border_color = FarmPalette.GOLD_SOFT if str(card.get_meta("skill_id")) == id else card.get_meta("base_border")
 
 
 func _open_skill_detail(id: String) -> void:
@@ -3375,7 +2949,7 @@ func _rebuild_file_bar() -> void:
 		btn.flat = true
 		btn.set_meta("file_name", str(name))
 		btn.custom_minimum_size = Vector2(72, 28)
-		_apply_font(btn, 15, GOLD_SOFT if _active_file == str(name) else TEXT_DIM, true)
+		ui.apply_font(btn, 15, FarmPalette.GOLD_SOFT if _active_file == str(name) else FarmPalette.TEXT_DIM, true)
 		var chosen := str(name)
 		btn.pressed.connect(func() -> void:
 			_switch_user_file(chosen)
@@ -3386,7 +2960,7 @@ func _rebuild_file_bar() -> void:
 	add.text = "+"
 	add.tooltip_text = "新建文件"
 	add.custom_minimum_size = Vector2(32, 28)
-	_apply_font(add, 18, GOLD_SOFT, true)
+	ui.apply_font(add, 18, FarmPalette.GOLD_SOFT, true)
 	add.pressed.connect(_new_user_file)
 	_file_bar.add_child(add)
 
@@ -3404,7 +2978,7 @@ func _switch_user_file(name: String) -> void:
 		for button in _file_bar.get_children():
 			if button is Button and button.has_meta("file_name"):
 				var is_active: bool = str(button.get_meta("file_name")) == name
-				button.add_theme_color_override("font_color", GOLD_SOFT if is_active else TEXT_DIM)
+				button.add_theme_color_override("font_color", FarmPalette.GOLD_SOFT if is_active else FarmPalette.TEXT_DIM)
 	if editor:
 		FarmMotion.stop(editor, "_file_fade")
 		editor.modulate.a = 0.65
