@@ -39,6 +39,7 @@ game/       Godot 工程：画面、界面、输入、存档，只读写 Codefar
 | `farm_skill_tree.gd` | 技能树面板、节点卡片、购买反馈、详情与范本 | `bought`、`rebuild_requested`、`load_exemplar_requested`、`template_copied` 信号 |
 | `farm_editor_assist.gd` | 字号缩放、按缩进退格、语法配色、补全 | `edited`、`clicked` 信号 |
 | `farm_code_files.gd` | main.cpp 与头文件、文件栏、把头文件交给模拟器 | 存档恢复、重置、载入范本时由 main 调用 |
+| `farm_collect_fx.gd` | 收获物飞向顶栏计数的效果 | main 在收割后调用 `collect()` |
 | `farm_ui_kit.gd` | 字体、共享 Theme、样式盒与按钮工厂 | main 和各面板通过 `ui.*` 构建控件 |
 | `farm_layout.gd` | 田块间距、高度等共享几何 | 田地、相机、bot 共用 |
 | `farm_palette.gd` | 界面与语法配色 | 全部界面 |

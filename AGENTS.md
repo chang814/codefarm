@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for coding agents working on **Codefarm** (Codex CLI, Codex Bot, Cursor, and others). Humans should start with [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md) (Chinese overview). Current version: **0.2.11**. Canonical tree: the maintainer's local checkout (see [docs/SOURCE.md](docs/SOURCE.md)); GitHub `chang814/codefarm` is the public mirror.
+Instructions for coding agents working on **Codefarm** (Codex CLI, Codex Bot, Cursor, and others). Humans should start with [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md) (Chinese overview). Current version: **0.3.0**. Canonical tree: the maintainer's local checkout (see [docs/SOURCE.md](docs/SOURCE.md)); GitHub `chang814/codefarm` is the public mirror.
 
 Codefarm is an original programming-farm game: players automate a farm with C++ programs, rendered in Godot 4.7.2. Player programs must look like standard C++ (`#include <bits/stdc++.h>`, `using namespace std;`, `int main()`). The UI is Chinese. The repo must not use or ship any third-party game's art, music, names, or trademarks, and docs should describe Codefarm on its own terms rather than as a version of another game.
 
@@ -105,9 +105,10 @@ Update all of these together:
 ## Design rules (do not drift)
 
 - Pain first, then the skill that cures it.
-- UI: an icon plus one word; little text; no walls of explanation. Top-bar icon buttons are nearly square (about 36×36, corner radius 6) with even inset; text buttons stay wider. Window chrome buttons are square too.
+- UI: an icon plus one word; little text; no walls of explanation. Top-bar icon buttons are nearly square (about 52×52, corner radius 12) with even inset; text buttons stay wider. Window chrome buttons are square too.
 - Fonts: Noto Sans CJK SC for system UI, JetBrains Mono (20px default, zoomable with Shift+wheel) for code. The default `#include` / `using` / `int main()` / `return 0` frame is edit-protected; the body stays editable.
-- The farm bot is a milk-yellow bean body with black vertical-bar eyes. No screen-face. No ring under the bot. The island under the field must not be a hard-edged disk.
+- Look: soft pastoral. Low-saturation world colours and a cream paper UI, all defined in `game/scripts/farm_palette.gd`; rounded shapes everywhere; plants are merged vertex-coloured meshes built in `farm_field.gd`. Change colours in the palette, not at call sites.
+- The farm bot is a milk-yellow round body with black vertical-bar eyes, rosy cheeks and a leaf sprout. No screen-face. No ring under the bot. The island under the field must not be a hard-edged disk.
 - Camera: left-drag on the ground pans with a little inertia; left clicks on UI never move the map; right-drag orbits 1:1; wheel zooms toward the cursor; WASD (stops on release); F recenters. The skill tree uses the same left-drag feel (6px threshold, grab cursor, short glide); a click on a node still unlocks or opens details; an open detail sheet does not pan with the tree, and the map does not pan while the tree is open.
 - Run: solid triangle runs `main` once and stops; hollow triangle steps once; clicking the editor stops. Grass keeps growing after the program ends. Speed upgrades shorten successful and failed harvest swings through action_ticks(), never growth. Harvesting unripe Grass restarts its 400-tick growth at action start; other crops keep their existing failure effects. Queries cost 1 tick and do not reset growth. Opening harvest and grass growth are 400 ticks.
 - Exemplars: one new concept at a time; tests and the game read the same file.

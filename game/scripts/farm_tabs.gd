@@ -15,7 +15,7 @@ func _ready() -> void:
 	indicator = Panel.new()
 	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.43, 0.54, 0.44, 0.8)
+	style.bg_color = Color(0.82, 0.89, 0.78, 1)
 	style.set_corner_radius_all(9)
 	indicator.add_theme_stylebox_override("panel", style)
 	add_child(indicator)
@@ -33,7 +33,7 @@ func _ready() -> void:
 			button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 		var focus := StyleBoxFlat.new()
 		focus.bg_color = Color.TRANSPARENT
-		focus.border_color = Color(0.84, 0.88, 0.73, 0.7)
+		focus.border_color = Color(0.50, 0.66, 0.53, 0.7)
 		focus.set_border_width_all(2)
 		focus.set_corner_radius_all(9)
 		button.add_theme_stylebox_override("focus", focus)
@@ -64,5 +64,5 @@ func select(id: String, animate: bool = true) -> void:
 		indicator.position = button.position
 		indicator.size = button.size
 	for key in buttons:
-		var tint := Color(0.96, 0.94, 0.85) if key == id else Color(0.73, 0.78, 0.72)
+		var tint := Color(0.24, 0.38, 0.30) if key == id else Color(0.50, 0.48, 0.42)
 		buttons[key].add_theme_color_override("font_color", tint)

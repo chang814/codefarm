@@ -16,13 +16,13 @@ var active := false:
 		queue_redraw()
 
 # Soft sage / matcha greens.
-const FILL := Color(0.46, 0.64, 0.50, 0.88)
-const FILL_HOVER := Color(0.54, 0.72, 0.56, 0.95)
-const FILL_ACTIVE := Color(0.42, 0.66, 0.48, 0.98)
-const FILL_ONCE := Color(0.38, 0.46, 0.40, 0.55)
-const FILL_ONCE_HOVER := Color(0.46, 0.58, 0.48, 0.70)
-const ICON := Color(0.93, 0.95, 0.88, 1)
-const ICON_ONCE := Color(0.78, 0.86, 0.72, 1)
+const FILL := Color(0.50, 0.69, 0.54, 1)
+const FILL_HOVER := Color(0.56, 0.75, 0.60, 1)
+const FILL_ACTIVE := Color(0.92, 0.66, 0.50, 1)
+const FILL_ONCE := Color(0.865, 0.900, 0.810, 1)
+const FILL_ONCE_HOVER := Color(0.815, 0.870, 0.765, 1)
+const ICON := Color(1.0, 0.99, 0.95, 1)
+const ICON_ONCE := Color(0.33, 0.50, 0.40, 1)
 const RADIUS := 8.0
 
 

@@ -8,9 +8,12 @@ extends Node
 
 const FarmLayout := preload("res://scripts/farm_layout.gd")
 const FarmMotion := preload("res://scripts/farm_motion.gd")
+const FarmPalette := preload("res://scripts/farm_palette.gd")
 
 ## Seconds for an idle (non-program) tile-to-tile glide.
 const IDLE_MOVE_TIME := 0.28
+## The bot is drawn a little larger than its parts are modelled.
+const BOT_SCALE := 1.22
 
 var host: CodefarmHost
 var drone: Node3D          # The main bot's scene node ($Farm/Drone).
@@ -23,6 +26,7 @@ var arm_l: Node3D
 var arm_r: Node3D
 var eye_l: Node3D
 var eye_r: Node3D
+var sprout: Node3D
 
 ## Height the bot rests at above the field.
 var base_y: float = 0.42
@@ -39,6 +43,9 @@ var _move_t: float = 1.0
 var extra_drones: Array = []
 var _drones_root: Node3D
 var _view_drone: int = 0
+# Squash-and-stretch spring: positive is tall and thin, negative is squat.
+var _squash := 0.0
+var _squash_vel := 0.0
 
 # Dependencies provided by main.
 var _farm_root: Node3D
@@ -57,7 +64,7 @@ func setup(sim_host: CodefarmHost, bot_node: Node3D, cam: Camera3D, deps: Dictio
 	_tile_world = deps["tile_world"]
 	_farm_size = deps["farm_size"]
 	_sfx = deps["sfx"]
-	base_y = FarmLayout.TILE_HEIGHT + 0.18
+	base_y = FarmLayout.TILE_HEIGHT + 0.18 * BOT_SCALE
 
 
 ## True while a harvest, flip or till motion owns the pose.
@@ -171,6 +178,7 @@ func update(delta: float) -> void:
 			drone.position.x = logical.x
 			drone.position.z = logical.z
 			drone.position.y = base_y + sin(hover_t * 1.35) * 0.012
+	_update_squash(delta, moving)
 	animate(delta, moving, move_dir)
 	_update_extra_drones(delta)
 
@@ -192,6 +200,34 @@ func animate(delta: float, moving: bool, move_dir: Vector3) -> void:
 		arm_r.rotation.z = lerp_angle(arm_r.rotation.z, -0.50 + sin(hover_t * 1.1) * 0.05, 1.0 - exp(-delta * 4.0))
 
 
+## Push the squash spring: negative squats (a landing, a swing), positive stretches.
+func kick(amount: float) -> void:
+	_squash_vel += amount
+
+
+func _update_squash(delta: float, moving: bool) -> void:
+	if rig == null:
+		return
+	# A damped spring, stepped at a fixed rate so it stays stable on slow frames.
+	var steps := clampi(int(ceil(delta / 0.008)), 1, 12)
+	var dt := delta / float(steps)
+	for i in steps:
+		_squash_vel += (-_squash * 260.0 - _squash_vel * 15.0) * dt
+		_squash += _squash_vel * dt
+	_squash = clampf(_squash, -0.35, 0.35)
+	var k := _squash
+	if moving:
+		# Stretch through the hop, flatten into the landing.
+		var t := clampf(float(host.current_action_progress()), 0.0, 1.0)
+		k += 0.16 * sin(t * PI) - 0.14 * smoothstep(0.82, 1.0, t)
+	else:
+		k += 0.018 * sin(hover_t * 2.2)
+	rig.scale = Vector3(1.0 - k * 0.5, 1.0 + k, 1.0 - k * 0.5) * BOT_SCALE
+	if sprout:
+		sprout.rotation.x = lerp_angle(sprout.rotation.x, -k * 2.2 + sin(hover_t * 1.9) * 0.07, 1.0 - exp(-delta * 10.0))
+		sprout.rotation.z = sin(hover_t * 1.5) * 0.10
+
+
 # --- Motions ----------------------------------------------------------------
 
 func play_stuck() -> void:
@@ -206,6 +242,7 @@ func play_stuck() -> void:
 	var origin_x := 0.0
 	var origin_z_rot := 0.0
 	rig.position.x = origin_x
+	kick(-1.6)
 	var tw := rig.create_tween()
 	rig.set_meta("_stuck_turn", tw)
 	tw.tween_property(rig, "rotation:z", origin_z_rot + 0.18, 0.07).set_trans(Tween.TRANS_SINE)
@@ -219,11 +256,13 @@ func play_stuck() -> void:
 	tw2.tween_property(rig, "position:x", origin_x, 0.10)
 
 
-## A successful harvest: the swing plus hay (or wood) strands flying off the tile.
+## A successful harvest: the swing plus a soft burst of clippings off the tile.
+## (The harvest itself flies to the top bar; see farm_collect_fx.gd.)
 func play_harvest_success(tile: Vector2i, wood: bool) -> void:
 	play_harvest_swing(true)
-	for i in 5:
-		_spawn_hay_strand(i, tile, wood)
+	var at: Vector3 = _tile_world.call(tile.x, tile.y)
+	at.y = FarmLayout.TILE_HEIGHT + 0.14
+	spawn_puff(at, FarmPalette.WOOD.lightened(0.15) if wood else FarmPalette.HAY, 7, 0.30)
 
 
 func play_harvest_swing(success: bool) -> void:
@@ -249,44 +288,48 @@ func play_harvest_swing(success: bool) -> void:
 	if success:
 		_harvest_tween.tween_property(drone, "position:y", base_y + 0.10, duration * 0.45)
 		_harvest_tween.tween_property(drone, "position:y", base_y, duration * 0.55).set_delay(duration * 0.45)
+	# The blade lands at the turn of the swing: a little squash sells the hit.
+	_harvest_tween.tween_callback(func() -> void: kick(-2.4 if success else -1.2)).set_delay(duration * 0.42)
 	_harvest_tween.chain().tween_callback(func() -> void: harvesting = false)
 
 
-func _spawn_hay_strand(index: int, key: Vector2i, wood: bool = false) -> void:
-	var puff := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.018
-	mesh.height = 0.11
-	puff.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	if wood:
-		var shade := 0.38 + 0.06 * float(index)
-		mat.albedo_color = Color(shade, 0.24 + 0.03 * float(index % 3), 0.14, 1)
-	else:
-		var shade := 0.78 + 0.08 * float(index)
-		mat.albedo_color = Color(shade, 0.68 + 0.04 * float(index % 3), 0.32, 1)
-	mat.roughness = 0.55
-	puff.material_override = mat
-	_juice_anchor.add_child(puff)
-	var origin: Vector3 = _tile_world.call(key.x, key.y)
-	var spread := 0.08 * float(index - 2)
-	puff.position = Vector3(origin.x + spread, FarmLayout.TILE_HEIGHT + 0.18, origin.z + 0.02 * float(index))
-	puff.rotation = Vector3(0.4, 0.3 * index, 0.2)
-	var start := puff.position
-	var finish := start + Vector3(-0.85 - 0.08 * float(index), 1.05 + 0.05 * float(index), -0.18 + spread)
-	var tw := create_tween()
-	tw.tween_method(
-		func(t: float) -> void:
-			var mid := start.lerp(finish, t)
-			mid.y += 0.85 * sin(t * PI)
-			puff.position = mid
-			puff.rotation.z = t * 3.2
-			puff.scale = Vector3.ONE * (1.0 - 0.35 * t),
-		0.0,
-		1.0,
-		0.42 + 0.04 * float(index)
-	)
-	tw.tween_callback(puff.queue_free)
+## A burst of small soft blobs that pop outward, drift up and shrink away.
+## Used for clippings, tilled soil and landing dust.
+func spawn_puff(at: Vector3, color: Color, count: int = 6, spread: float = 0.26) -> void:
+	if _juice_anchor == null:
+		return
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.034
+	mesh.height = 0.068
+	mesh.radial_segments = 10
+	mesh.rings = 5
+	for i in count:
+		var puff := MeshInstance3D.new()
+		puff.mesh = mesh
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color.lightened(0.10 * float(i % 3))
+		mat.roughness = 0.95
+		puff.material_override = mat
+		puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_juice_anchor.add_child(puff)
+		var ang := TAU * (float(i) + 0.35 * float(i % 2)) / float(count)
+		var reach := spread * (0.7 + 0.3 * float((i * 7) % 4) / 3.0)
+		var start := at
+		var finish := at + Vector3(cos(ang) * reach, 0.16 + 0.10 * float(i % 3), sin(ang) * reach)
+		var size := 0.8 + 0.5 * float((i * 5) % 3) / 2.0
+		puff.position = start
+		puff.scale = Vector3.ONE * 0.2
+		var tw := create_tween()
+		tw.tween_method(
+			func(t: float) -> void:
+				var eased := 1.0 - pow(1.0 - t, 3.0)
+				puff.position = start.lerp(finish, eased) + Vector3(0, 0.10 * sin(t * PI), 0)
+				puff.scale = Vector3.ONE * size * sin(minf(1.0, t * 1.25) * PI * 0.5) * (1.0 - smoothstep(0.55, 1.0, t)),
+			0.0,
+			1.0,
+			0.46 + 0.03 * float(i % 4)
+		)
+		tw.tween_callback(puff.queue_free)
 
 
 func play_till() -> void:
@@ -319,6 +362,12 @@ func play_till() -> void:
 	hop.tween_callback(func() -> void:
 		tilling = false
 	)
+	var hit := create_tween()
+	hit.tween_interval(0.27)
+	hit.tween_callback(func() -> void:
+		kick(-2.2)
+		spawn_puff(Vector3(drone.position.x, FarmLayout.TILE_HEIGHT + 0.06, drone.position.z + 0.10), FarmPalette.SOIL_TOP.lightened(0.18), 6, 0.30)
+	)
 
 
 func play_flip() -> void:
@@ -346,6 +395,8 @@ func play_flip() -> void:
 		if rig:
 			rig.rotation.x = 0.0
 		flipping = false
+		kick(-3.0)
+		spawn_puff(Vector3(drone.position.x, FarmLayout.TILE_HEIGHT + 0.05, drone.position.z), Color(1.0, 0.98, 0.90, 1), 6, 0.28)
 	)
 
 
@@ -366,38 +417,73 @@ func build() -> void:
 	arm_l = parts["arm_l"]
 	arm_r = parts["arm_r"]
 	hoe = parts["hoe"]
+	sprout = parts["sprout"]
 
 
-## Build one bot body under `parent`. The main bot and extra drones share it.
+## Build one bot body under `parent`. The main bot and extra drones share it:
+## a milk-yellow ball with two black slot eyes, rosy cheeks, a leaf sprout on
+## top, stubby arms and a small hoe.
 func make_rig(parent: Node3D) -> Dictionary:
-	# Warm matte cream, lower albedo so volume reads under the farm lights.
-	var cream := _mat(Color(0.70, 0.62, 0.50, 1), 0.92, 0.0)
-	var wood := _mat(Color(0.58, 0.40, 0.26, 1), 0.92, 0.0)
-	var metal := _mat(Color(0.42, 0.48, 0.44, 1), 0.78, 0.10)
+	parent.scale = Vector3.ONE * BOT_SCALE
+	var cream := _mat(FarmPalette.BOT_BODY, 0.90, 0.0)
+	var wood := _mat(FarmPalette.WOOD, 0.92, 0.0)
+	var metal := _mat(Color(0.74, 0.80, 0.82, 1), 0.70, 0.10)
 	var eye_mat := _mat(Color.BLACK, 0.95, 0.0)
+	var cheek_mat := _mat(FarmPalette.BOT_CHEEK, 0.95, 0.0)
+	var leaf_mat := _mat(FarmPalette.LEAF_LIGHT, 0.88, 0.0)
+	var stem_mat := _mat(FarmPalette.LEAF, 0.88, 0.0)
 
-	# Single chubby bean / capsule. No separate head, no feet — it hovers.
+	# One round body. No separate head, no feet — it hovers.
 	var body := SphereMesh.new()
 	body.radius = 0.15
 	body.height = 0.30
+	body.radial_segments = 32
+	body.rings = 16
 	var body_node := _mesh_inst(body, cream, Vector3(0, -0.01, 0), parent)
 	body_node.name = "Body"
-	_outline_mesh(body, parent, Vector3(0, -0.01, 0), 1.05)
+	_outline_mesh(body, parent, Vector3(0, -0.01, 0), 1.035)
 
-	# No face plate: two matte black rounded vertical slots sit on the bean.
+	# No face plate: two matte black rounded vertical slots sit on the ball.
 	var eye_mesh := CapsuleMesh.new()
-	eye_mesh.radius = 0.012
-	eye_mesh.height = 0.070
+	eye_mesh.radius = 0.013
+	eye_mesh.height = 0.072
 	var el := Node3D.new()
 	el.name = "EyeLeft"
 	var er := Node3D.new()
 	er.name = "EyeRight"
-	el.position = Vector3(-0.044, 0.025, 0.138)
-	er.position = Vector3(0.044, 0.025, 0.138)
+	el.position = Vector3(-0.046, 0.022, 0.138)
+	er.position = Vector3(0.046, 0.022, 0.138)
 	parent.add_child(el)
 	parent.add_child(er)
 	_mesh_inst(eye_mesh, eye_mat, Vector3.ZERO, el)
 	_mesh_inst(eye_mesh, eye_mat, Vector3.ZERO, er)
+
+	# Soft cheeks just under the eyes.
+	var cheek := SphereMesh.new()
+	cheek.radius = 0.026
+	cheek.height = 0.052
+	for side in [-1.0, 1.0]:
+		var c := _mesh_inst(cheek, cheek_mat, Vector3(side * 0.088, -0.026, 0.112), parent)
+		c.rotation = Vector3(0.18, side * 0.62, 0)
+		c.scale = Vector3(1.0, 0.62, 0.30)
+		c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	# A two-leaf sprout on top; it sways and reacts to every hop.
+	var sp := Node3D.new()
+	sp.name = "Sprout"
+	sp.position = Vector3(0, 0.132, 0)
+	parent.add_child(sp)
+	var stem := CapsuleMesh.new()
+	stem.radius = 0.008
+	stem.height = 0.07
+	_mesh_inst(stem, stem_mat, Vector3(0, 0.03, 0), sp)
+	var leaf := SphereMesh.new()
+	leaf.radius = 0.042
+	leaf.height = 0.084
+	for side in [-1.0, 1.0]:
+		var l := _mesh_inst(leaf, leaf_mat, Vector3(side * 0.034, 0.075, 0), sp)
+		l.rotation = Vector3(0, 0, side * -0.55)
+		l.scale = Vector3(1.0, 0.24, 0.58)
 
 	var al := Node3D.new()
 	var ar := Node3D.new()
@@ -409,43 +495,32 @@ func make_rig(parent: Node3D) -> Dictionary:
 	parent.add_child(ar)
 
 	var arm := CapsuleMesh.new()
-	arm.radius = 0.024
+	arm.radius = 0.026
 	arm.height = 0.10
 	_mesh_inst(arm, cream, Vector3(0, -0.044, 0.01), al)
 	_mesh_inst(arm, cream, Vector3(0, -0.044, 0.01), ar)
-	_outline_mesh(arm, al, Vector3(0, -0.044, 0.01), 1.08)
-	_outline_mesh(arm, ar, Vector3(0, -0.044, 0.01), 1.08)
-	var hand := SphereMesh.new()
-	hand.radius = 0.022
-	hand.height = 0.032
-	_mesh_inst(hand, cream, Vector3(0, -0.092, 0.014), al)
-	_mesh_inst(hand, cream, Vector3(0, -0.092, 0.014), ar)
+	_outline_mesh(arm, al, Vector3(0, -0.044, 0.01), 1.07)
+	_outline_mesh(arm, ar, Vector3(0, -0.044, 0.01), 1.07)
 
-	# Hoe lives on the rig so its silhouette stays readable: long wood handle
-	# held at the side, metal head up beside the crown (~0.8 body height).
+	# Hoe lives on the rig so its silhouette stays readable: wood handle held
+	# at the side, rounded metal head up beside the crown.
 	var h := Node3D.new()
 	h.name = "Hoe"
 	h.position = Vector3(0.179, 0.02, 0.05)
 	h.rotation = Vector3(0.30, 0.10, -0.48)
 	parent.add_child(h)
-	var handle := CylinderMesh.new()
-	handle.top_radius = 0.011
-	handle.bottom_radius = 0.013
-	handle.height = 0.26
+	var handle := CapsuleMesh.new()
+	handle.radius = 0.013
+	handle.height = 0.27
 	_mesh_inst(handle, wood, Vector3(0, 0, 0), h)
-	var ferrule := SphereMesh.new()
-	ferrule.radius = 0.016
-	ferrule.height = 0.024
-	_mesh_inst(ferrule, metal, Vector3(0, 0.133, 0), h)
 	var blade := CapsuleMesh.new()
-	blade.radius = 0.024
+	blade.radius = 0.026
 	blade.height = 0.100
-	var blade_n := _mesh_inst(blade, metal, Vector3(0.0, 0.155, 0.016), h)
+	var blade_n := _mesh_inst(blade, metal, Vector3(0.0, 0.150, 0.016), h)
 	blade_n.rotation_degrees = Vector3(80, 16, 0)
-	blade_n.scale = Vector3(1.70, 1.0, 0.48)
-	_outline_mesh(handle, h, Vector3(0, 0, 0), 1.08)
+	blade_n.scale = Vector3(1.70, 1.0, 0.52)
 
-	return {"eye_l": el, "eye_r": er, "arm_l": al, "arm_r": ar, "hoe": h}
+	return {"eye_l": el, "eye_r": er, "arm_l": al, "arm_r": ar, "hoe": h, "sprout": sp}
 
 
 func _mat(color: Color, rough: float = 0.45, metal: float = 0.0, emission: float = 0.0, emit_color: Color = Color.BLACK) -> StandardMaterial3D:
@@ -472,7 +547,7 @@ func _mesh_inst(mesh: Mesh, mat: Material, pos := Vector3.ZERO, parent: Node3D =
 
 func _outline_mesh(mesh: Mesh, parent: Node3D, pos: Vector3, scale := 1.045, rot := Vector3.ZERO) -> void:
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.40, 0.33, 0.26, 1)
+	mat.albedo_color = FarmPalette.BOT_OUTLINE
 	mat.roughness = 1.0
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.cull_mode = BaseMaterial3D.CULL_FRONT

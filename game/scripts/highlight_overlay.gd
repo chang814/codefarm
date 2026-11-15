@@ -3,12 +3,12 @@ extends Control
 ## Draws a finer execution highlight over a CodeEdit: a slim gold tick,
 ## a soft wash, a left-to-right rounded progress fill, and a fading previous line.
 
-const WASH := Color(0.86, 0.70, 0.38, 0.16)
-const FILL := Color(0.86, 0.70, 0.38, 0.22)
-const TICK := Color(0.90, 0.72, 0.36, 0.95)
+const WASH := Color(0.95, 0.80, 0.48, 0.18)
+const FILL := Color(0.95, 0.78, 0.44, 0.26)
+const TICK := Color(0.88, 0.62, 0.28, 1)
 const FADE_SPEED := 4.2
-const GUIDE := Color(0.78, 0.62, 0.38, 0.14)
-const GUIDE_ACTIVE := Color(0.82, 0.68, 0.44, 0.32)
+const GUIDE := Color(0.70, 0.60, 0.44, 0.22)
+const GUIDE_ACTIVE := Color(0.84, 0.62, 0.32, 0.50)
 
 var editor: CodeEdit
 var current_line: int = -1

@@ -6,8 +6,8 @@ class_name FarmErrorMarkup
 const APPEAR := 0.18
 const DISMISS := 0.15
 const RISE := 7.0
-const CORAL := Color(0.88, 0.66, 0.60, 1)
-const AMBER := Color(0.88, 0.78, 0.56, 1)
+const CORAL := Color(0.84, 0.44, 0.38, 1)
+const AMBER := Color(0.80, 0.58, 0.24, 1)
 
 var editor: CodeEdit
 var _font: Font
@@ -165,7 +165,7 @@ func _make_bubble() -> void:
 	_label.add_theme_font_size_override("normal_font_size", 16)
 	_label.add_theme_font_size_override("mono_font_size", 16)
 	_label.add_theme_constant_override("line_separation", 6)
-	_label.add_theme_color_override("default_color", Color(0.92, 0.89, 0.83, 1))
+	_label.add_theme_color_override("default_color", Color(0.31, 0.29, 0.25, 1))
 	_bubble.add_child(_label)
 
 
@@ -177,7 +177,7 @@ func _apply_label() -> void:
 	if _label == null:
 		return
 	var stroke := _stroke()
-	var bg := Color(0.16, 0.19, 0.17, 0.99)
+	var bg := Color(0.995, 0.975, 0.945, 0.99)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.set_corner_radius_all(12)
@@ -187,7 +187,7 @@ func _apply_label() -> void:
 	sb.content_margin_right = 10
 	sb.content_margin_top = 8
 	sb.content_margin_bottom = 8
-	sb.shadow_color = Color(0, 0, 0, 0.22)
+	sb.shadow_color = Color(0.36, 0.28, 0.17, 0.20)
 	sb.shadow_size = 6
 	sb.shadow_offset = Vector2(0, 2)
 	_bubble.add_theme_stylebox_override("panel", sb)
