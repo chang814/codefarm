@@ -66,7 +66,7 @@ func _run() -> void:
 	check(hay == 1, "starter program harvests one hay, got %d" % hay)
 	var code := str(main.editor.text).replace("    harvest();", "    harvest();\n    harvest();")
 	main.editor.text = code
-	main.call("_on_editor_text_changed")
+	main.editor_assist.call("on_text_changed")
 	main.call("_set_sound_level", 1)
 	for sound in ["harvest", "miss", "till", "stuck", "flip", "unlock", "deny"]:
 		check(main.audio.has_sound(sound), "sound is synthesized: " + sound)

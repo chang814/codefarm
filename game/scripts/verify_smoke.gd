@@ -393,23 +393,23 @@ func _run() -> void:
 		return
 
 	# Shift+wheel zooms font; Ctrl+0 resets.
-	var font_before: int = int(main.get("_font_size"))
-	if main.has_method("_set_editor_font_size"):
-		main.call("_set_editor_font_size", font_before + 3, false, false)
+	var font_before: int = int(main.editor_assist.get("font_size"))
+	if main.editor_assist.has_method("set_font_size"):
+		main.editor_assist.call("set_font_size", font_before + 3, false, false)
 	for _i in 3:
 		await process_frame
-	if int(main.get("_font_size")) != font_before + 3:
+	if int(main.editor_assist.get("font_size")) != font_before + 3:
 		_fail("字号缩放未生效")
 		return
 	var badge: Control = main.get("font_badge")
 	if badge == null:
 		_fail("缺少字号百分比小标")
 		return
-	if main.has_method("reset_editor_font"):
-		main.call("reset_editor_font")
+	if main.editor_assist.has_method("reset_font"):
+		main.editor_assist.call("reset_font")
 	for _i in 3:
 		await process_frame
-	if int(main.get("_font_size")) != int(main.get("_font_size_default")):
+	if int(main.editor_assist.get("font_size")) != int(main.editor_assist.get("font_size_default")):
 		_fail("Ctrl+0 / 复位后字号应回到默认")
 		return
 
@@ -1040,8 +1040,9 @@ func _send_wheel(editor: Control, shift: bool) -> void:
 	var main := editor.get_tree().root.get_child(editor.get_tree().root.get_child_count() - 1)
 	# Prefer the scene main node.
 	for child in editor.get_tree().root.get_children():
-		if child.has_method("_on_editor_gui_input"):
-			child.call("_on_editor_gui_input", ev)
+		var assist: Node = child.get("editor_assist")
+		if assist:
+			assist.call("gui_input", ev)
 			var rig: Node = child.get("camera_rig")
 			if rig:
 				var zoom_before: float = float(rig.get("zoom"))

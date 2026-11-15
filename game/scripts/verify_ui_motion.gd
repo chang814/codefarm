@@ -325,12 +325,12 @@ func run() -> void:
 	var fonts = main.overlay_body.find_child("FontOptions", true, false)
 	click(fonts.buttons["20"])
 	await settle()
-	check(int(main.get("_font_size")) == 20, "font option applied")
+	check(int(main.editor_assist.get("font_size")) == 20, "font option applied")
 	check(fonts.indicator.position.distance_to(fonts.buttons["20"].position) < 0.5, "font selection glides into place")
 	for value in ["16", "18", "20"]:
 		click(fonts.buttons[value])
 		await settle()
-		check(int(main.get("_font_size")) == int(value), "font button " + value)
+		check(int(main.editor_assist.get("font_size")) == int(value), "font button " + value)
 	await capture("ui-028-settings")
 	# The modal backdrop intentionally owns input until its close button is used.
 	click(main.log_button)
