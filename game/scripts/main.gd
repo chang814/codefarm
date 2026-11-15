@@ -16,6 +16,7 @@ const FarmChangelog := preload("res://scripts/farm_changelog.gd")
 const FarmUiKit := preload("res://scripts/farm_ui_kit.gd")
 const FarmEditorAssist := preload("res://scripts/farm_editor_assist.gd")
 const FarmCodeFiles := preload("res://scripts/farm_code_files.gd")
+const FarmSkillTree := preload("res://scripts/farm_skill_tree.gd")
 
 const VERSION := "0.2.11"
 const STARTER := """#include <bits/stdc++.h>
@@ -102,8 +103,6 @@ var _hint_stash_maximized := false
 var _hint_stash_rect := Rect2()
 var _code_default := Rect2(20, 94, 520, 432)
 var _hint_default := Rect2(20, 538, 520, 342)
-var skill_detail: Control
-var _selected_skill_id := ""
 var last_copied_template := ""
 # Hint window: one-sentence pain + collapsible 「范本」 (the playthrough's exemplar).
 var hint_skill_id := ""
@@ -114,16 +113,13 @@ var hint_header_label: Label
 var hint_header_code: CodeEdit
 var hint_header_copy: Button
 var _hint_exemplar_open := true
-var _skill_glow_nodes: Array = []
-var skill_scroll: ScrollContainer
-var _skill_more_hint: Control
-var _skill_view := {"zoom": 1.0, "scroll": Vector2.ZERO}
 var camera_rig: FarmCameraRig
 var bot: FarmBot
 var field: FarmField
 var ui: FarmUiKit
 var editor_assist: FarmEditorAssist
 var code_files: FarmCodeFiles
+var skill_tree: FarmSkillTree
 
 @export var persistence_enabled := true
 @export var start_on_farm := false  # Explicit scene fixture option for isolated UI tests.
@@ -150,6 +146,7 @@ const INTRO_DURATION := 1.6
 
 func _ready() -> void:
 	_setup_field()
+	_setup_skill_tree()
 	_setup_camera_rig()
 	_setup_bot()
 	field.size_changed.connect(func(size: int) -> void: camera_rig.apply_home(size, false))
@@ -180,6 +177,29 @@ func _setup_field() -> void:
 	field.name = "Field"
 	add_child(field)
 	field.setup(host, camera, farm_root, farm_earth)
+
+
+func _setup_skill_tree() -> void:
+	skill_tree = FarmSkillTree.new()
+	skill_tree.name = "SkillTree"
+	add_child(skill_tree)
+	skill_tree.setup(host, null, {
+		"sfx": _sfx,
+		"highlighter": func() -> CodeHighlighter: return editor_assist.highlighter if editor_assist else null,
+	})
+	skill_tree.bought.connect(func(id: String) -> void:
+		_queue_save()
+		hint_skill_id = id
+		_update_hay()
+		_apply_hint_text()
+		_maybe_unlock_hint(false)
+	)
+	skill_tree.rebuild_requested.connect(func() -> void:
+		if _open_panel == "skill":
+			_fill_panel("skill")
+	)
+	skill_tree.load_exemplar_requested.connect(_load_exemplar)
+	skill_tree.template_copied.connect(func(text: String) -> void: last_copied_template = text)
 
 
 func _setup_camera_rig() -> void:
@@ -346,13 +366,12 @@ func smootherstep(t: float) -> float:
 
 func _snapshot_progress() -> Dictionary:
 	code_files.flush_active()
-	if is_instance_valid(skill_scroll):
-		_skill_view = {"zoom": skill_scroll.zoom, "scroll": Vector2(skill_scroll.scroll_horizontal, skill_scroll.scroll_vertical)}
-	var scroll: Vector2 = _skill_view.scroll
+	var view := skill_tree.capture_view()
+	var scroll: Vector2 = view.scroll
 	return {"version": 1, "world": host.save_state(), "files": code_files.user_files.duplicate(),
 		"active_file": code_files.active_file, "hint": hint_skill_id, "exemplar_open": _hint_exemplar_open,
-		"zoom": _skill_view.zoom, "scroll": [scroll.x, scroll.y], "font_size": editor_assist.font_size,
-		"selected_skill": _selected_skill_id, "bot_yaw": bot.rig.rotation.y,
+		"zoom": view.zoom, "scroll": [scroll.x, scroll.y], "font_size": editor_assist.font_size,
+		"selected_skill": skill_tree.selected_id, "bot_yaw": bot.rig.rotation.y,
 		"hint_visible": hint_window.visible, "code_visible": code_window.visible,
 		"sound": _sound_level}
 
@@ -392,8 +411,8 @@ func _load_progress() -> bool:
 		editor_assist.set_font_size(int(data.font_size), false, false)
 		hint_skill_id = data.get("hint", "")
 		_hint_exemplar_open = bool(data.get("exemplar_open", false))
-		_skill_view = {"zoom": float(data.zoom), "scroll": Vector2(float(data.scroll[0]), float(data.scroll[1]))}
-		_selected_skill_id = data.get("selected_skill", "")
+		skill_tree.view = {"zoom": float(data.zoom), "scroll": Vector2(float(data.scroll[0]), float(data.scroll[1]))}
+		skill_tree.selected_id = data.get("selected_skill", "")
 		bot.rig.rotation.y = float(data.bot_yaw)
 		hint_window.visible = bool(data.get("hint_visible", true))
 		code_window.visible = bool(data.get("code_visible", true))
@@ -460,6 +479,7 @@ func _exit_tree() -> void:
 
 func _setup_ui_kit() -> void:
 	ui = FarmUiKit.new()
+	skill_tree.ui = ui
 	ui.load_fonts()
 	var theme := ui.build_theme()
 	if ui_root:
@@ -1160,11 +1180,7 @@ func _process(delta: float) -> void:
 	_update_hay()
 	_maybe_unlock_hint()
 	if _open_panel == "skill":
-		var pulse := 0.5 + 0.5 * sin(_hover_t * 2.4)
-		for card in _skill_glow_nodes:
-			if card is Control and is_instance_valid(card):
-				var m := 1.0 + 0.08 * pulse
-				(card as Control).modulate = Color(m, m, 0.92 + 0.08 * pulse, 1)
+		skill_tree.pulse(_hover_t)
 
 
 func _on_run() -> void:
@@ -1306,7 +1322,7 @@ func _hint_skill() -> String:
 
 
 func _skill_display_name(id: String) -> String:
-	for n in _skill_nodes():
+	for n in FarmSkillData.nodes(host):
 		if str(n["id"]) == id:
 			return str(n["name"])
 	return id
@@ -1379,30 +1395,13 @@ func _toggle_hint_exemplar() -> void:
 	_apply_hint_text()
 
 
-func _flash_copied(label: Label) -> void:
-	if label == null:
-		return
-	label.visible = true
-	label.modulate = Color(1, 1, 1, 1)
-	FarmMotion.stop(label, "_copied")
-	var tw := label.create_tween()
-	label.set_meta("_copied", tw)
-	tw.tween_interval(0.8)
-	tw.tween_property(label, "modulate:a", 0.0, 0.2)
-	tw.tween_callback(func() -> void:
-		if is_instance_valid(label):
-			label.visible = false
-			label.modulate = Color(1, 1, 1, 1)
-	)
-
-
 func _copy_hint_exemplar() -> void:
 	var text := FarmSkillData.exemplar(_hint_skill())
 	if text.is_empty():
 		return
 	last_copied_template = text
 	DisplayServer.clipboard_set(text)
-	_flash_copied(hint_copied_label)
+	FarmMotion.flash_label(hint_copied_label)
 
 
 func _copy_hint_header() -> void:
@@ -1411,7 +1410,7 @@ func _copy_hint_header() -> void:
 		return
 	last_copied_template = str(header["text"])
 	DisplayServer.clipboard_set(last_copied_template)
-	_flash_copied(hint_copied_label)
+	FarmMotion.flash_label(hint_copied_label)
 
 
 func _maybe_unlock_hint(refresh_panel: bool = true) -> void:
@@ -1634,7 +1633,7 @@ func _toggle_panel(panel_id: String) -> void:
 func _close_panel(instant: bool = false) -> void:
 	_open_panel = ""
 	_reset_confirming = false
-	_close_skill_detail()
+	skill_tree.close_detail()
 	FarmMotion.close_overlay(backdrop, overlay_card, FarmMotion.CLOSE_DUR, instant)
 
 
@@ -1643,11 +1642,7 @@ func _clear_overlay_body() -> void:
 		if is_instance_valid(button) and button.get_parent() != ui_root:
 			button.reparent(ui_root)
 			button.hide()
-	if is_instance_valid(skill_scroll) and skill_scroll.is_inside_tree():
-		_skill_view = {"zoom": skill_scroll.get("zoom"), "scroll": Vector2(skill_scroll.scroll_horizontal, skill_scroll.scroll_vertical)}
-		skill_scroll = null
-	_skill_glow_nodes.clear()
-	skill_detail = null
+	skill_tree.release()
 	for child in overlay_body.get_children():
 		overlay_body.remove_child(child)
 		child.queue_free()
@@ -1658,7 +1653,7 @@ func _fill_panel(panel_id: String) -> void:
 	match panel_id:
 		"skill":
 			overlay_title.text = "技能树"
-			_fill_skill_tree()
+			skill_tree.build(overlay_body)
 		"hint":
 			overlay_title.text = "提示"
 			_fill_hint_panel()
@@ -1834,599 +1829,12 @@ func _confirm_reset() -> void:
 	_queue_save()
 
 
-func _skill_nodes() -> Array:
-	return FarmSkillData.nodes(host)
-
-
 func _skill_template(id: String) -> String:
 	return FarmSkillData.exemplar(id)
 
 
-func _skill_knowledge(id: String) -> String:
-	var extra := FarmSkillData.knowledge(id)
-	if extra != "":
-		return extra
-	match id:
-		"harvest":
-			return "harvest() 是一次函数调用，做完就往下走。把语句放进 int main()，程序才有入口。do_a_flip() 只是表演，不改农场。"
-		"loop":
-			return "while (true) 会反复执行花括号里的语句，直到你停下。开局一次收割大约要 1 秒，和草长熟的时间一样，所以循环正好能一刀接一刀收到成熟的草。"
-		"speed":
-			return "所有挥刀约快 2 倍，每刀 200 tick；草仍要 400 tick 才熟。未熟就砍会打回幼苗，连续盲收会长不熟。先停循环，等熟再单收攒够 12 干草；买「条件」后用 can_harvest() 等熟再收。"
-		"iff":
-			return "在已有的 while 里加 if (can_harvest()) harvest();，只在成熟时收割。查询只花 1 tick，不打断幼苗生长；一档加速后约每 400 tick 收一棵。"
-		"move":
-			return "move(East) 走到邻格，到边缘会从对侧出现。解锁时农场扩大为 3×3。方向名可以写成 enum Dir。"
-		"forl":
-			return "for (int i = 0; i < 3; i++) 把同一段动作做固定次数，适合走完一垄。现在 i 还不能拿来运算。"
-		"till":
-			return "till() 把草地翻成土壤（并清掉上面的植物），再翻一次变回草地。土壤自己不会长草。"
-		"plant":
-			return "plant(Bush) 只能种在空的土壤上，灌木 2 秒成熟，收割得到木头。用 get_entity_type() 和 get_ground_type() 判断格子。"
-		"vars":
-			return "变量用来记住一个有类型的值，例如 int 或 bool。有了它，循环变量才能真正拿来计数。"
-		"fn":
-			return "把一段重复的动作写成函数，main 里只要调用名字。以后可以在 main 外面定义 harvest_row()。"
-		_:
-			return ""
-
-
-func _fill_skill_tree() -> void:
-	_skill_glow_nodes.clear()
-	var root := Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	overlay_body.add_child(root)
-
-	var scroll := preload("res://scripts/farm_skill_scroll.gd").new()
-	scroll.node_clicked.connect(click_skill_node)
-	scroll.name = "SkillScroll"
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.offset_top = 44
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
-	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
-	root.add_child(scroll)
-	skill_scroll = scroll
-
-	var wrap := Control.new()
-	wrap.name = "SkillWrap"
-	wrap.custom_minimum_size = FarmSkillData.CANVAS_SIZE
-	scroll.add_child(wrap)
-	var canvas := Control.new()
-	canvas.name = "SkillCanvas"
-	canvas.mouse_filter = Control.MOUSE_FILTER_PASS
-	wrap.add_child(canvas)
-	scroll.configure(canvas, wrap, FarmSkillData.CANVAS_SIZE)
-	var toolbar := HBoxContainer.new()
-	toolbar.add_theme_constant_override("separation", 8)
-	toolbar.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	root.add_child(toolbar)
-	var guide := Label.new()
-	guide.text = "学习路线 · 左拖 / 滚轮缩放"
-	guide.tooltip_text = "主线向下，支线补充；完整前置见节点提示。左键拖动，滚轮缩放。"
-	guide.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ui.apply_font(guide, 17, FarmPalette.TEXT)
-	toolbar.add_child(guide)
-	var zoom_label := Label.new()
-	ui.apply_font(zoom_label, 16, FarmPalette.TEXT)
-	zoom_label.text = "100%"
-	toolbar.add_child(zoom_label)
-	scroll.zoom_changed.connect(func(value: float) -> void: zoom_label.text = "%d%%" % roundi(value * 100.0))
-	var overview := ui.make_button("全貌", false, 72)
-	overview.name = "SkillFitAll"
-	overview.tooltip_text = "缩放到完整技能树"
-	overview.pressed.connect(scroll.fit_all)
-	toolbar.add_child(overview)
-	var actual := ui.make_button("还原", false, 72)
-	actual.name = "SkillZoomReset"
-	actual.pressed.connect(func() -> void: scroll.zoom_about(1.0))
-	toolbar.add_child(actual)
-
-	var nodes := _skill_nodes()
-	var index := {}
-	for node in nodes:
-		index[node["id"]] = node
-
-	var lines := Control.new()
-	lines.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var node_w := 100.0
-	var node_h := 120.0
-	lines.draw.connect(func() -> void:
-		var pairs := FarmSkillData.edges()
-		for pair in pairs:
-			var a: Dictionary = index[pair[0]]
-			var b: Dictionary = index[pair[1]]
-			var same_row: bool = absf(float((a["pos"] as Vector2).y) - float((b["pos"] as Vector2).y)) < 8.0
-			var pa: Vector2
-			var pb: Vector2
-			var detour := false
-			if same_row:
-				var left_first: bool = (a["pos"] as Vector2).x <= (b["pos"] as Vector2).x
-				pa = a["pos"] + Vector2(node_w if left_first else 0.0, node_h * 0.5)
-				pb = b["pos"] + Vector2(0.0 if left_first else node_w, node_h * 0.5)
-				var x0 := minf(pa.x, pb.x)
-				var x1 := maxf(pa.x, pb.x)
-				for other in nodes:
-					if str(other["id"]) == str(a["id"]) or str(other["id"]) == str(b["id"]):
-						continue
-					var op: Vector2 = other["pos"]
-					if absf(op.y - float((a["pos"] as Vector2).y)) < 8.0 and op.x + 10.0 < x1 and op.x + node_w - 10.0 > x0:
-						detour = true
-						break
-			else:
-				pa = a["pos"] + Vector2(node_w * 0.5, node_h - 2.0)
-				pb = b["pos"] + Vector2(node_w * 0.5, 2.0)
-			var col := Color(0.72, 0.70, 0.64, 0.18)
-			var width := 2.0
-			if a["owned"] and b["owned"]:
-				col = Color(0.80, 0.70, 0.50, 0.72)
-				width = 2.6
-			elif a["owned"] and not b.get("soon", false):
-				col = Color(0.80, 0.70, 0.50, 0.34)
-				width = 2.2
-			_draw_skill_branch(lines, pa, pb, col, width, detour)
-	)
-	canvas.add_child(lines)
-
-	for node in nodes:
-		var card := _skill_node_card(node)
-		card.position = node["pos"]
-		canvas.add_child(card)
-	lines.queue_redraw()
-
-	_skill_more_hint = Control.new()
-	_skill_more_hint.name = "SkillMoreHint"
-	_skill_more_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_skill_more_hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_skill_more_hint.offset_top = -36
-	_skill_more_hint.offset_bottom = 0
-	_skill_more_hint.draw.connect(func() -> void:
-		if skill_scroll == null:
-			return
-		var bar := skill_scroll.get_v_scroll_bar()
-		if bar and bar.value < bar.max_value - skill_scroll.size.y - 8:
-			var w := _skill_more_hint.size.x
-			var h := _skill_more_hint.size.y
-			_skill_more_hint.draw_rect(Rect2(0, 0, w, h), Color(0.11, 0.14, 0.13, 0.0))
-			var fade := Color(0.11, 0.14, 0.13, 0.55)
-			for i in 10:
-				var a := 0.0 + 0.07 * float(i)
-				_skill_more_hint.draw_rect(Rect2(0, h * float(i) / 10.0, w, h / 10.0 + 1), Color(fade.r, fade.g, fade.b, a))
-			var mid := Vector2(w * 0.5, h * 0.62)
-			_skill_more_hint.draw_colored_polygon(PackedVector2Array([
-				mid + Vector2(-10, -4), mid + Vector2(10, -4), mid + Vector2(0, 6)
-			]), Color(0.86, 0.78, 0.58, 0.55))
-	)
-	root.add_child(_skill_more_hint)
-	var vbar := scroll.get_v_scroll_bar()
-	if vbar:
-		vbar.value_changed.connect(func(_v: float) -> void:
-			if _skill_more_hint:
-				_skill_more_hint.queue_redraw()
-		)
-	# Nudge scroll so the first view already shows a cut-off lower branch.
-	scroll.zoom_about(float(_skill_view["zoom"]), Vector2.ZERO)
-	scroll.call_deferred("_apply_zoom_scroll", _skill_view["scroll"])
-	skill_detail = _make_skill_detail()
-	skill_detail.visible = false
-	root.add_child(skill_detail)
-	scroll.blocking_control = skill_detail
-	if _selected_skill_id != "":
-		_open_skill_detail(_selected_skill_id)
-
-
-func _cubic_bezier(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float) -> Vector2:
-	var u := 1.0 - t
-	return u * u * u * p0 + 3.0 * u * u * t * p1 + 3.0 * u * t * t * p2 + t * t * t * p3
-
-
-func _append_round_corner(points: PackedVector2Array, p: Vector2, q: Vector2, r: Vector2, radius: float) -> void:
-	var v1 := p - q
-	var v2 := r - q
-	var l1 := v1.length()
-	var l2 := v2.length()
-	if l1 < 1.0 or l2 < 1.0:
-		points.append(q)
-		return
-	var rad := minf(radius, minf(l1, l2) * 0.48)
-	var a := q + v1 * (rad / l1)
-	var c := q + v2 * (rad / l2)
-	points.append(a)
-	for i in range(1, 7):
-		var t := float(i) / 6.0
-		points.append(_cubic_bezier(a, a.lerp(q, 0.55), c.lerp(q, 0.55), c, t))
-	points.append(c)
-
-
-func _draw_skill_branch(ci: Control, a: Vector2, b: Vector2, col: Color, width: float, detour_below: bool = false) -> void:
-	var dy := b.y - a.y
-	var dx := b.x - a.x
-	var points := PackedVector2Array()
-	if detour_below:
-		var dip := 28.0
-		points.append(a)
-		_append_round_corner(points, a, Vector2(a.x, a.y + dip), Vector2(b.x, a.y + dip), 14.0)
-		_append_round_corner(points, Vector2(a.x, a.y + dip), Vector2(b.x, a.y + dip), b, 14.0)
-		points.append(b)
-	elif absf(dx) < 8.0:
-		# Same column: a slightly eased vertical.
-		var mid := (a + b) * 0.5
-		for i in 8:
-			var t := float(i) / 7.0
-			points.append(_cubic_bezier(a, Vector2(a.x, mid.y), Vector2(b.x, mid.y), b, t))
-	elif absf(dy) < 28.0:
-		var sx := signf(dx) * clampf(absf(dx) * 0.4, 24.0, 56.0)
-		_append_round_corner(points, a, a + Vector2(sx, 0), b, 18.0)
-		points.append(b)
-		if points.is_empty() or points[0] != a:
-			var prefixed := PackedVector2Array([a])
-			prefixed.append_array(points)
-			points = prefixed
-	else:
-		# Rounded orthogonal: down from parent, across, down into the child.
-		# Keep the horizontal in the corridor just below the parent so lines don't cut cards.
-		var stub := 22.0
-		var mid := Vector2(b.x, a.y + stub)
-		var drop := Vector2(b.x, b.y)
-		points.append(a)
-		_append_round_corner(points, a, Vector2(a.x, a.y + stub), mid, 16.0)
-		_append_round_corner(points, Vector2(a.x, a.y + stub), mid, drop, 16.0)
-		points.append(b)
-	if points.size() < 2:
-		return
-	ci.draw_polyline(points, col, width, true)
-
-
-func _skill_node_card(node: Dictionary) -> Control:
-	var card := PanelContainer.new()
-	card.name = "Skill_" + str(node["id"])
-	card.custom_minimum_size = FarmSkillData.CARD_SIZE
-	card.size = FarmSkillData.CARD_SIZE
-	var owned: bool = node["owned"]
-	var soon: bool = node.get("soon", false)
-	var id := str(node["id"])
-	var can_buy := false
-	if not soon and id != "harvest":
-		can_buy = bool(node.get("can_buy", false)) or (not owned and host.can_unlock(id))
-	var bg := Color(0.30, 0.27, 0.20, 0.95) if owned else Color(0.18, 0.19, 0.18, 0.90)
-	if soon:
-		bg = Color(0.15, 0.16, 0.15, 0.72)
-	elif not owned:
-		bg = Color(0.16, 0.17, 0.16, 0.88)
-	var style := ui.flat(bg, 12, Vector4(6, 5, 6, 4), 2)
-	if can_buy:
-		style.border_color = Color(0.65, 0.81, 0.64, 0.90)
-		style.set_border_width_all(2)
-	elif owned:
-		style.border_color = Color(0.80, 0.70, 0.50, 0.30)
-		style.set_border_width_all(1)
-	card.add_theme_stylebox_override("panel", style)
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if not soon else Control.CURSOR_ARROW
-	if soon:
-		card.tooltip_text = "即将开放"
-	elif not owned:
-		card.tooltip_text = "前置：%s\n%s" % [FarmSkillData.prerequisite_text(id), FarmSkillData.cost_text(node.get("cost_map", {}))]
-	else:
-		card.tooltip_text = "已解锁 · 点击查看"
-	card.tooltip_text = FarmSkillData.guidance(id) + "\n" + card.tooltip_text
-
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	card.add_child(col)
-
-	var icon := FarmIcon.new()
-	if soon:
-		icon.kind = FarmIcon.Kind.LOCK
-		icon.icon_color = Color(0.62, 0.62, 0.58, 0.45)
-	else:
-		icon.kind = FarmIcon.kind_from_name(id)
-		icon.icon_color = FarmPalette.GOLD_SOFT if owned else Color(0.62, 0.62, 0.58, 0.70)
-	icon.custom_minimum_size = Vector2(26, 26)
-	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	col.add_child(icon)
-
-	var title := Label.new()
-	title.text = str(node["name"])
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ui.apply_font(title, 18, Color(0.84, 0.76, 0.58, 1) if owned else Color(0.74, 0.73, 0.68, 0.78 if not soon else 0.42), false)
-	col.add_child(title)
-	var purpose := Label.new()
-	purpose.name = "SkillPurpose"
-	purpose.text = str(node["pain"])
-	purpose.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	purpose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	purpose.custom_minimum_size.x = 0
-	ui.apply_font(purpose, 12, FarmPalette.TEXT_DIM)
-	purpose.add_theme_constant_override("line_spacing", -4)
-	col.add_child(purpose)
-
-	var cmap: Dictionary = node.get("cost_map", {})
-	var price_text := FarmSkillData.cost_text(cmap) if not cmap.is_empty() else (str(node.get("cost", 0)) if int(node.get("cost", 0)) > 0 else "")
-	if (not owned or can_buy) and not soon and price_text != "" and price_text != "0":
-		var cost := Label.new()
-		cost.text = price_text.replace(" + ", "\n")
-		cost.name = "CostLabel"
-		cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cost.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cost.max_lines_visible = 2
-		cost.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		cost.tooltip_text = price_text
-		ui.apply_font(cost, 12, FarmPalette.GOLD if can_buy else Color(0.70, 0.68, 0.62, 0.80), false)
-		cost.add_theme_constant_override("line_spacing", -4)
-		col.add_child(cost)
-
-	var shortfall := Label.new()
-	shortfall.name = "Shortfall"
-	shortfall.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	shortfall.visible = false
-	ui.apply_font(shortfall, 14, FarmPalette.DANGER)
-	var feedback := Control.new()
-	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(feedback)
-	feedback.add_child(shortfall)
-	shortfall.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	shortfall.offset_top = -26
-	shortfall.offset_bottom = -2
-
-	card.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_on_skill_node_clicked(id, card)
-			card.accept_event()
-	)
-	if not soon:
-		card.mouse_entered.connect(func() -> void: style.bg_color = bg.lightened(0.10))
-		card.mouse_exited.connect(func() -> void: style.bg_color = bg)
-	card.set_meta("skill_id", id)
-	card.set_meta("can_buy", can_buy)
-	card.set_meta("base_border", style.border_color)
-	if can_buy:
-		_skill_glow_nodes.append(card)
-	return card
-
-
-func _on_skill_node_clicked(id: String, card: Control = null) -> void:
-	var nodes := _skill_nodes()
-	var node: Dictionary = {}
-	for n in nodes:
-		if str(n["id"]) == id:
-			node = n
-			break
-	if node.is_empty() or node.get("soon", false):
-		return
-	if id == "harvest" or (node["owned"] and not host.can_unlock(id)):
-		_open_skill_detail(id)
-		return
-	if host.can_unlock(id):
-		var code: int = int(host.try_unlock(id))
-		if code == 0:
-			_queue_save()
-			hint_skill_id = id
-			_update_hay()
-			_apply_hint_text()
-			_maybe_unlock_hint(false)
-			_selected_skill_id = ""
-			if card:
-				var shown_scroll_id := skill_scroll.get_instance_id()
-				card.pivot_offset = card.size * 0.5
-				_play_unlock_flourish(card)
-				var tw := create_tween()
-				tw.tween_interval(0.26)
-				tw.tween_callback(func() -> void:
-					# A late unlock flourish must not rebuild a NEW tree after
-					# close/reopen and reset the player's current scroll.
-					if _open_panel == "skill" and is_instance_valid(skill_scroll) and skill_scroll.get_instance_id() == shown_scroll_id:
-						_fill_panel("skill")
-				)
-			elif _open_panel == "skill":
-				_fill_panel("skill")
-		return
-	# Not enough hay or missing prerequisite: shake, show shortfall if it's hay.
-	_open_skill_detail(id)
-	if card:
-		_shake_skill_card(card)
-		if host.prerequisite_met(id):
-			var need: int = int(host.hay_shortfall(id))
-			var badge: Label = card.find_child("Shortfall", true, false)
-			if badge:
-				badge.text = "差 %d" % need
-				badge.visible = true
-				var cost: Label = card.find_child("CostLabel", true, false)
-				if cost:
-					cost.visible = false
-				var tw := card.create_tween()
-				tw.tween_interval(0.9)
-				tw.tween_callback(func() -> void:
-					if is_instance_valid(badge):
-						badge.visible = false
-					if is_instance_valid(cost):
-						cost.visible = true
-				)
-
-
-func _shake_skill_card(card: Control) -> void:
-	_sfx("deny")
-	FarmMotion.stop(card, "_fm_shake")
-	var origin: Vector2 = card.get_meta("_fm_shake_origin", card.position)
-	card.set_meta("_fm_shake_origin", origin)
-	var tw := card.create_tween()
-	card.set_meta("_fm_shake", tw)
-	tw.tween_property(card, "position:x", origin.x - 5, 0.04)
-	tw.tween_property(card, "position:x", origin.x + 5, 0.05)
-	tw.tween_property(card, "position:x", origin.x - 3, 0.04)
-	tw.tween_property(card, "position:x", origin.x, 0.05)
-
-
-func _play_unlock_flourish(card: Control) -> void:
-	_sfx("unlock")
-	if card == null:
-		return
-	FarmMotion.stop(card, "_fm_feedback")
-	var tw := card.create_tween()
-	card.set_meta("_fm_feedback", tw)
-	tw.tween_property(card, "scale:x", 0.08, 0.10).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(card, "scale:x", 1.0, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-
-func _make_skill_detail() -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.name = "SkillDetail"
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -250
-	panel.offset_right = 250
-	panel.offset_top = -210
-	panel.offset_bottom = 210
-	panel.add_theme_stylebox_override("panel", ui.flat(FarmPalette.SAGE_DEEP, 16, Vector4(18, 16, 18, 16), 12))
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	panel.add_child(v)
-	var head := HBoxContainer.new()
-	v.add_child(head)
-	var title := Label.new()
-	title.name = "DetailTitle"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ui.apply_font(title, 22, FarmPalette.GOLD_SOFT, true)
-	head.add_child(title)
-	var close := ui.make_icon_button(FarmIcon.Kind.CLOSE, "关闭", false, Vector2(44, 44))
-	close.pressed.connect(func() -> void:
-		_close_skill_detail()
-	)
-	head.add_child(close)
-	var knowledge := Label.new()
-	knowledge.name = "DetailKnowledge"
-	knowledge.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ui.apply_font(knowledge, 19, FarmPalette.TEXT)
-	v.add_child(knowledge)
-	var ex_title := Label.new()
-	ex_title.name = "DetailExemplarTitle"
-	ex_title.text = "范本"
-	ui.apply_font(ex_title, 18, FarmPalette.GOLD_SOFT, true)
-	v.add_child(ex_title)
-	var code := CodeEdit.new()
-	code.name = "DetailCode"
-	code.editable = false
-	code.gutters_draw_line_numbers = false
-	code.wrap_mode = TextEdit.LINE_WRAPPING_NONE
-	code.custom_minimum_size = Vector2(0, 168)
-	code.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if ui.font_mono:
-		code.add_theme_font_override("font", ui.font_mono)
-	code.add_theme_font_size_override("font_size", 16)
-	code.add_theme_color_override("font_color", FarmPalette.SYN_IDENT)
-	code.add_theme_color_override("font_readonly_color", FarmPalette.SYN_IDENT)
-	var ed := ui.flat(Color(0.10, 0.12, 0.11, 1), 10, Vector4(10, 8, 10, 8))
-	code.add_theme_stylebox_override("normal", ed)
-	code.add_theme_stylebox_override("read_only", ed)
-	code.add_theme_stylebox_override("focus", ed)
-	v.add_child(code)
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 8)
-	v.add_child(actions)
-	var copy_btn := ui.make_button("复制", false, 88)
-	copy_btn.name = "CopyTemplate"
-	copy_btn.tooltip_text = "复制完整主程序到剪贴板"
-	copy_btn.pressed.connect(_copy_selected_skill_template)
-	actions.add_child(copy_btn)
-	var insert_btn := ui.make_button("载入", false, 88)
-	insert_btn.name = "InsertTemplate"
-	insert_btn.tooltip_text = "替换 main.cpp，并载入配套头文件"
-	insert_btn.pressed.connect(_insert_selected_skill_template)
-	actions.add_child(insert_btn)
-	var copied := Label.new()
-	copied.name = "CopiedHint"
-	copied.text = "已复制"
-	copied.visible = false
-	ui.apply_font(copied, 17, FarmPalette.GOLD_SOFT)
-	actions.add_child(copied)
-	return panel
-
-
-func _mark_skill_selection(id: String) -> void:
-	if not is_instance_valid(skill_scroll):
-		return
-	for card in skill_scroll.find_children("Skill_*", "PanelContainer", true, false):
-		if card.has_meta("skill_id"):
-			var style: StyleBoxFlat = card.get_theme_stylebox("panel")
-			style.border_color = FarmPalette.GOLD_SOFT if str(card.get_meta("skill_id")) == id else card.get_meta("base_border")
-
-
-func _open_skill_detail(id: String) -> void:
-	_selected_skill_id = id
-	_mark_skill_selection(id)
-	if is_instance_valid(skill_scroll):
-		skill_scroll.call("_cancel_drag")
-	if skill_detail == null:
-		return
-	var title: Label = skill_detail.find_child("DetailTitle", true, false)
-	var knowledge: Label = skill_detail.find_child("DetailKnowledge", true, false)
-	var code: CodeEdit = skill_detail.find_child("DetailCode", true, false)
-	var name := id
-	for n in _skill_nodes():
-		if str(n["id"]) == id:
-			name = str(n["name"])
-			break
-	if title:
-		title.text = name
-	var owned := _skill_owned(id)
-	if knowledge:
-		var lines: PackedStringArray = []
-		if FarmSkillData.pain(id) != "":
-			lines.append(FarmSkillData.pain(id))
-		if _skill_knowledge(id) != "":
-			lines.append(_skill_knowledge(id))
-		lines = [FarmSkillData.pain(id), FarmSkillData.remedy(id), "下一行：" + FarmSkillData.next_line(id)]
-		if id in ["speed", "iff"]:
-			lines = [FarmSkillData.pain(id), "在 while 里加：if (can_harvest()) harvest();"]
-		if not owned:
-			lines.append("前置：" + FarmSkillData.prerequisite_text(id))
-		knowledge.text = "\n".join(lines)
-	var ex_title: Label = skill_detail.find_child("DetailExemplarTitle", true, false)
-	if ex_title:
-		ex_title.text = "完整范本 · 载入替换主程序" if owned else "范本：解锁后显示"
-	if code:
-		# The exemplar is shown only once the skill is owned.
-		code.text = _skill_template(id) if owned else ""
-		code.visible = owned
-		if editor_assist.highlighter:
-			code.syntax_highlighter = editor_assist.highlighter.duplicate()
-	for btn_name in ["CopyTemplate", "InsertTemplate"]:
-		var btn: Control = skill_detail.find_child(btn_name, true, false)
-		if btn:
-			btn.visible = owned
-	FarmMotion.open_popup(skill_detail)
-
-
-func _close_skill_detail() -> void:
-	_selected_skill_id = ""
-	_mark_skill_selection("")
-	if skill_detail:
-		FarmMotion.close_popup(skill_detail)
-
-
-func _copy_selected_skill_template() -> void:
-	if not _skill_owned(_selected_skill_id):
-		return
-	var text := _skill_template(_selected_skill_id)
-	if text.is_empty():
-		return
-	last_copied_template = text
-	DisplayServer.clipboard_set(text)
-	if skill_detail:
-		var hint: Label = skill_detail.find_child("CopiedHint", true, false)
-		_flash_copied(hint)
-
-
 func _load_hint_exemplar() -> void:
 	_load_exemplar(_hint_skill())
-
-
-func _insert_selected_skill_template() -> void:
-	_load_exemplar(_selected_skill_id)
 
 
 func _load_exemplar(id: String) -> void:
@@ -2442,13 +1850,6 @@ func _load_exemplar(id: String) -> void:
 	code_files.load_program(text, FarmSkillData.exemplar_headers(id))
 
 
-func click_skill_node(id: String) -> void:
-	var card: Control = null
-	if overlay_body:
-		card = overlay_body.find_child("Skill_" + id, true, false)
-	_on_skill_node_clicked(id, card)
-
-
 func buy_skill(id: String) -> int:
 
 	var code: int = int(host.try_unlock(id))
@@ -2460,10 +1861,6 @@ func buy_skill(id: String) -> int:
 	if _open_panel == "skill":
 		_fill_panel("skill")
 	return code
-
-
-func open_skill_detail(id: String) -> void:
-	_open_skill_detail(id)
 
 
 ## Public camera actions (buttons, F key, tests).
@@ -2506,7 +1903,7 @@ func _point_over_ui(pos: Vector2) -> bool:
 	for w in [code_window, hint_window]:
 		if w and w.visible and w.get_global_rect().has_point(pos):
 			return true
-	if skill_detail and skill_detail.visible and skill_detail.get_global_rect().has_point(pos):
+	if skill_tree.detail and skill_tree.detail.visible and skill_tree.detail.get_global_rect().has_point(pos):
 		return true
 	if ui_root:
 		var top := ui_root.get_node_or_null("TopBar")
@@ -2548,15 +1945,4 @@ func _soften_lights() -> void:
 		fill.shadow_enabled = false
 		fill.rotation_degrees = Vector3(-25, 130, 0)
 		add_child(fill)
-
-
-func scroll_skills_toward(id: String) -> void:
-	if skill_scroll == null:
-		return
-	for node in FarmSkillData.nodes(host):
-		if str(node["id"]) == id:
-			var pos: Vector2 = node["pos"] * float(skill_scroll.get("zoom"))
-			skill_scroll.scroll_vertical = int(max(0.0, pos.y - 280.0))
-			skill_scroll.scroll_horizontal = int(max(0.0, pos.x - 420.0))
-			return
 

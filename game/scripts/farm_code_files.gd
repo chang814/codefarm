@@ -6,13 +6,14 @@ extends Node
 
 const FarmMotion := preload("res://scripts/farm_motion.gd")
 const FarmPalette := preload("res://scripts/farm_palette.gd")
+const FarmUiKit := preload("res://scripts/farm_ui_kit.gd")
 
 const MAIN_FILE := "main.cpp"
 const NEW_FILE_TEMPLATE := "void harvest_row() {\n    for (int i = 0; i < get_world_size(); i++) {\n        if (can_harvest()) harvest();\n        move(East);\n    }\n}\n"
 
 var editor: CodeEdit
 var host: CodefarmHost
-var ui  # FarmUiKit
+var ui: FarmUiKit
 ## File name -> source text. The editor holds the active file's live text.
 var user_files: Dictionary = {}
 var active_file := MAIN_FILE
@@ -23,7 +24,7 @@ var file_bar_wrap: Control
 var _starter := ""
 
 
-func setup(code_edit: CodeEdit, sim_host: CodefarmHost, ui_kit, starter: String) -> void:
+func setup(code_edit: CodeEdit, sim_host: CodefarmHost, ui_kit: FarmUiKit, starter: String) -> void:
 	editor = code_edit
 	host = sim_host
 	ui = ui_kit

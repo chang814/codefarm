@@ -605,10 +605,10 @@ func _run() -> void:
 	if bool(main.host.loops_unlocked()):
 		_fail("重置后循环不应已解锁")
 		return
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "loop")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "loop")
 	else:
-		main.call("_on_skill_node_clicked", "loop", loop_card)
+		main.skill_tree.call("on_node_clicked", "loop", loop_card)
 	for _i in 8:
 		await process_frame
 	if bool(main.host.loops_unlocked()):
@@ -639,10 +639,10 @@ func _run() -> void:
 	if loop_card == null:
 		_fail("攒够干草后技能树缺少循环图标")
 		return
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "loop")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "loop")
 	else:
-		main.call("_on_skill_node_clicked", "loop", loop_card)
+		main.skill_tree.call("on_node_clicked", "loop", loop_card)
 	var waited := 0
 	while waited < 40 and not bool(main.host.loops_unlocked()):
 		await process_frame
@@ -656,18 +656,18 @@ func _run() -> void:
 	if int(main.host.get_hay()) != 0:
 		_fail("解锁循环后余额应为 0，实际 %d" % int(main.host.get_hay()))
 		return
-	var detail: Control = main.get("skill_detail")
+	var detail: Control = main.skill_tree.get("detail")
 	if detail and detail.visible:
 		_fail("第一次点击解锁时不应打开详情")
 		return
 	loop_card = overlay.find_child("Skill_loop", true, false)
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "loop")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "loop")
 	else:
-		main.call("_on_skill_node_clicked", "loop", loop_card)
+		main.skill_tree.call("on_node_clicked", "loop", loop_card)
 	for _i in 8:
 		await process_frame
-	detail = main.get("skill_detail")
+	detail = main.skill_tree.get("detail")
 	if detail == null or not detail.visible:
 		_fail("已解锁技能再点应打开详情小窗")
 		return
@@ -675,7 +675,7 @@ func _run() -> void:
 	if detail_code == null or str(detail_code.text).find("while") < 0:
 		_fail("详情小窗应展示循环模板代码")
 		return
-	main.call("_copy_selected_skill_template")
+	main.skill_tree.call("copy_selected_template")
 	if str(main.get("last_copied_template")).find("while (true)") < 0:
 		_fail("复制按钮应写下完整模板")
 		return
@@ -713,10 +713,10 @@ func _run() -> void:
 		_fail("范本应可再展开")
 		return
 	# A locked skill shows no exemplar and copies nothing.
-	main.call("open_skill_detail", "iff")
+	main.skill_tree.call("open_detail", "iff")
 	for _i in 4:
 		await process_frame
-	detail = main.get("skill_detail")
+	detail = main.skill_tree.get("detail")
 	if not is_instance_valid(detail):
 		_fail("技能详情实例缺失")
 		return
@@ -725,11 +725,11 @@ func _run() -> void:
 		_fail("未解锁技能的详情不应显示范本")
 		return
 	main.set("last_copied_template", "")
-	main.call("_copy_selected_skill_template")
+	main.skill_tree.call("copy_selected_template")
 	if str(main.get("last_copied_template")) != "":
 		_fail("未解锁技能不应能复制范本")
 		return
-	main.call("_close_skill_detail")
+	main.skill_tree.call("close_detail")
 	print("SMOKE hint exemplar visible and copyable")
 	main.call("_close_panel")
 
@@ -763,10 +763,10 @@ func _run() -> void:
 	if speed_card == null:
 		_fail("攒够干草后技能树缺少加速图标")
 		return
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "speed")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "speed")
 	else:
-		main.call("_on_skill_node_clicked", "speed", speed_card)
+		main.skill_tree.call("on_node_clicked", "speed", speed_card)
 	for _i in 24:
 		await process_frame
 	if not bool(main.host.speed_unlocked()):
@@ -866,8 +866,8 @@ func _run() -> void:
 		if (scroll as ScrollContainer).horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_NEVER 				and (scroll as ScrollContainer).vertical_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED:
 			_fail("技能树应能纵向（及必要时横向）滚动")
 			return
-	if main.has_method("scroll_skills_toward"):
-		main.call("scroll_skills_toward", "mega")
+	if main.skill_tree.has_method("scroll_toward"):
+		main.skill_tree.call("scroll_toward", "mega")
 	elif scroll is ScrollContainer:
 		(scroll as ScrollContainer).scroll_vertical = 1200
 	for _i in 8:
@@ -1000,8 +1000,8 @@ int main() {
 	print("SMOKE multi-file editor ok")
 	# Isolated UI fixture: the existing smoke grants above expose file controls.
 	# Full gameplay progression is verified separately without grants in C++.
-	main.call("open_skill_detail", "include")
-	var load_button = main.skill_detail.find_child("InsertTemplate", true, false)
+	main.skill_tree.call("open_detail", "include")
+	var load_button = main.skill_tree.detail.find_child("InsertTemplate", true, false)
 	load_button.pressed.emit()
 	var headers: Dictionary = load("res://scripts/skill_data.gd").exemplar_headers("include")
 	for name in headers:
@@ -1015,7 +1015,7 @@ int main() {
 	if headers.is_empty() or main.get("last_copied_template") != headers[headers.keys()[0]]:
 		_fail("提示中的头文件复制按钮必须复制同源头文件")
 		return
-	main.call("_close_skill_detail")
+	main.skill_tree.call("close_detail")
 	print("SMOKE exemplar headers load and copy ok")
 
 	await _save_screenshots(main)
@@ -1078,14 +1078,14 @@ func _save_screenshots(main: Node) -> void:
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
 	# Skills shot: scroll so later branches (pumpkin / maze / dino / mega) are in view.
-	main.set("_selected_skill_id", "")
+	main.skill_tree.set("selected_id", "")
 	main.call("_toggle_panel", "skill")
 	for _i in 8:
 		await process_frame
-	if main.has_method("scroll_skills_toward"):
-		main.call("scroll_skills_toward", "pumpkin")
-	elif main.get("skill_scroll"):
-		main.get("skill_scroll").scroll_vertical = 1100
+	if main.skill_tree.has_method("scroll_toward"):
+		main.skill_tree.call("scroll_toward", "pumpkin")
+	elif main.skill_tree.get("scroll"):
+		main.skill_tree.get("scroll").scroll_vertical = 1100
 	for _i in 10:
 		await process_frame
 	var img: Image = vp.get_texture().get_image()

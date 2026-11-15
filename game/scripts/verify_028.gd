@@ -86,7 +86,7 @@ func run() -> void:
 	main.hint_window.visible = false
 	main.call("_toggle_panel", "skill")
 	await settle()
-	var scroll = main.skill_scroll
+	var scroll = main.skill_tree.scroll
 	scroll.fit_all()
 	await settle()
 	await capture("ui-028-skills-overview")
@@ -120,11 +120,11 @@ func run() -> void:
 	scroll.scroll_vertical = 700
 	main.call("_fill_panel", "skill")
 	await settle()
-	check(is_equal_approx(main.skill_scroll.zoom, 1.3) and main.skill_scroll.scroll_vertical == 700, "tree rebuild preserves zoom and position")
+	check(is_equal_approx(main.skill_tree.scroll.zoom, 1.3) and main.skill_tree.scroll.scroll_vertical == 700, "tree rebuild preserves zoom and position")
 	main.call("_fill_panel", "settings")
 	main.call("_fill_panel", "skill")
 	await settle()
-	check(is_equal_approx(main.skill_scroll.zoom, 1.3) and main.skill_scroll.scroll_vertical == 700, "settings round-trip preserves tree view")
+	check(is_equal_approx(main.skill_tree.scroll.zoom, 1.3) and main.skill_tree.scroll.scroll_vertical == 700, "settings round-trip preserves tree view")
 	main.call("_close_panel", true)
 	root.size = Vector2i(1440, 900)
 	await settle()
