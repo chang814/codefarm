@@ -11,6 +11,7 @@
 [![Godot](https://img.shields.io/badge/Godot-4.7.2-478cbf?logo=godotengine&logoColor=white)](https://godotengine.org/)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599c?logo=cplusplus&logoColor=white)](sim/)
 [![Tests](https://img.shields.io/badge/检查-1844%20项通过-5a8f4e)](tests/)
+[![License: MIT](https://img.shields.io/badge/许可-MIT-c9a46a)](LICENSE)
 
 ### [⬇ 下载 Windows 免安装试玩版](https://github.com/chang814/codefarm/releases/latest)
 
@@ -226,7 +227,7 @@ flowchart LR
 
 Codefarm 的代码、画面和玩法由作者与 AI 协作开发，灵感来自编程农场类游戏；仓库不包含、也不分发任何参考作品的贴图、音乐或商标资源。
 
-第三方组件保留各自的许可：[Godot Engine](https://godotengine.org/) 与 [godot-cpp](https://github.com/godotengine/godot-cpp)（MIT）、[Noto Sans CJK](https://github.com/notofonts/noto-cjk) 与 [JetBrains Mono](https://www.jetbrains.com/lp/mono/)（SIL OFL 1.1）、Droid Sans Fallback（Apache 2.0）、MinGW 运行库（GPL + GCC Runtime Library Exception）。完整文本见 [`licenses/`](licenses/)。
+Codefarm 自身的源码以 [MIT 许可](LICENSE) 开源。第三方组件保留各自的许可：[Godot Engine](https://godotengine.org/) 与 [godot-cpp](https://github.com/godotengine/godot-cpp)（MIT）、[Noto Sans CJK](https://github.com/notofonts/noto-cjk) 与 [JetBrains Mono](https://www.jetbrains.com/lp/mono/)（SIL OFL 1.1）、Droid Sans Fallback（Apache 2.0）、MinGW 运行库（GPL + GCC Runtime Library Exception）。完整文本见 [`licenses/`](licenses/)。
 
 <div align="center">
 <sub>用一行 <code>harvest();</code> 开始。🌾</sub>
