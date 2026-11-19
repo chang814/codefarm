@@ -1,53 +1,151 @@
-# Codefarm 0.2.11
+<div align="center">
 
-**用 C++ 写代码，让小 bot 帮你种田。**
+# 🌱 Codefarm
 
-一个中文 3D 编程农场游戏：从一次 `harvest()` 开始，用循环、条件、函数、数组和多机协作，把手动农场变成自己的自动化系统。C++ 模拟器负责规则，Godot 4.7.2 呈现柔和的农场与交互。
+**用真正的 C++ 写程序，让一只奶黄色的小 bot 替你种田。**
 
-**[下载 Windows 免安装试玩版](https://github.com/chang814/codefarm/releases/latest)** · [反馈问题](https://github.com/chang814/codefarm/issues) · [更新日志](CHANGELOG.md)
+*Write real C++ to teach a little farm bot to work the land — one idea at a time.*
 
-![Codefarm 欢迎页](shots/share-welcome.png)
+[![Version](https://img.shields.io/badge/版本-0.2.11-7a9a6e)](CHANGELOG.md)
+[![Platform](https://img.shields.io/badge/平台-Windows%20x64-5b7a8c)](https://github.com/chang814/codefarm/releases/latest)
+[![Godot](https://img.shields.io/badge/Godot-4.7.2-478cbf?logo=godotengine&logoColor=white)](https://godotengine.org/)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599c?logo=cplusplus&logoColor=white)](sim/)
+[![Tests](https://img.shields.io/badge/检查-1844%20项通过-5a8f4e)](tests/)
 
-## 马上试玩
+### [⬇ 下载 Windows 免安装试玩版](https://github.com/chang814/codefarm/releases/latest)
 
-1. 打开上方下载页，下载 `Codefarm-v0.2.11-Windows-x64.zip`，不要选择 GitHub 自动生成的 Source code。
-2. 完整解压，双击 `Codefarm.exe` 或 `开始游戏.cmd`。无需另外安装 Godot、C++ 编译器。
-3. 点击「开始游戏」，在代码窗口里运行第一段程序。
+[马上试玩](#-马上试玩) · [怎么玩](#-一局是怎么展开的) · [从源码构建](#-从源码构建) · [更新日志](CHANGELOG.md) · [反馈问题](https://github.com/chang814/codefarm/issues)
 
-当前试玩包支持 **Windows x64**，推荐支持 Vulkan 的独立显卡或较新的集成显卡。它包含官方 Godot 运行程序和独立资源包，体积比正式导出模板打包偏大。当前没有网页试玩或手机安装包；QQ、微信群里分享的是仓库和下载页面。
+<img src="shots/share-welcome.png" alt="欢迎页：奶黄色小 bot 站在草丛里" width="820">
 
-## 你会玩到什么
+</div>
 
-- **先遇到问题，再学新写法**：一刀一刀收太慢，学循环；加速后盲收会打断幼苗生长，学条件判断；田变大，学遍历与函数。
-- **C++ 形态的程序**：`#include <bits/stdc++.h>`、`using namespace std;`、`int main()`。这是教学用 C++ 子集解释器，并非完整 C++ 编译器。
-- **一棵循序解锁的技能树**：作物、浇水、向日葵、南瓜、迷宫、仙人掌、恐龙帽、多无人机。范本和通关测试读取同一份代码。
-- **柔和的交互**：圆角图标、平滑窗口动效、左键拖动和缩放技能树、受保护的默认代码框架、带定位与修正建议的错误提示。
-- **自动保存**：进度、背包、技能、代码、设置随时继续；包含校验与备份恢复。
-- **原创程序化画面与声音**：小 bot、草甸、花丛、树木、云影、蝴蝶与动作音效。
+---
 
-![Codefarm 农场与代码编辑器](shots/share-farm.png)
+## ✨ 这是什么
 
-## 基本操作
+Codefarm 是一个中文 3D 编程农场游戏。你只有一块草地、一只小 bot 和一个代码窗口。第一行程序只有 `harvest();`，点一下运行，它收一刀。
+
+很快你会嫌它太慢：于是学会 `while`。加速之后它开始乱砍没长熟的草：于是学会 `if`。田变大了，手抄 `move` 太累：于是学会 `for`、变量、函数、数组、结构体……直到你写出一套能指挥好几架无人机同时干活的自动化农场。
+
+<table>
+<tr>
+<td width="50%"><img src="shots/share-farm.png" alt="3×3 农场与正在运行的代码"></td>
+<td width="50%"><img src="shots/share-meadow.png" alt="农场周围的草甸、小花和树"></td>
+</tr>
+<tr>
+<td align="center"><sub>代码一行一行地跑，当前行高亮，小 bot 跟着动</sub></td>
+<td align="center"><sub>程序化生成的草甸：云影、摆动的草、花丛和蝴蝶</sub></td>
+</tr>
+</table>
+
+## 🎮 马上试玩
+
+1. 打开 **[Releases 下载页](https://github.com/chang814/codefarm/releases/latest)**，下载 `Codefarm-v0.2.11-Windows-x64.zip`。（不要下 GitHub 自动生成的 *Source code*。）
+2. **完整解压**，双击 `Codefarm.exe`（或 `开始游戏.cmd`）。不需要安装 Godot，也不需要 C++ 编译器。
+3. 点「开始游戏」，在代码窗口里点 ▶ 运行第一段程序。
+
+> 需要 Windows x64 和支持 Vulkan 的显卡（较新的集成显卡一般也可以）。目前没有网页版和手机版。
+
+## 🌾 一局是怎么展开的
+
+Codefarm 的每个技能都遵循同一条规则：**先让你撞上一个麻烦，再交给你刚好能解决它的那一种写法。**
+
+<table>
+<tr><th>你遇到的麻烦</th><th>你学会的写法</th></tr>
+<tr><td>每点一次运行，bot 只收一刀</td><td>
+
+```cpp
+while (true) {
+    harvest();
+}
+```
+
+</td></tr>
+<tr><td>买了「加速」，bot 开始砍没长熟的草，草一直长不大</td><td>
+
+```cpp
+while (true) {
+    if (can_harvest()) {
+        harvest();
+    }
+}
+```
+
+</td></tr>
+<tr><td>田变成 3×3，同一句 <code>move</code> 要抄好多遍</td><td>
+
+```cpp
+for (int i = 0; i < 3; i++) {
+    if (can_harvest()) harvest();
+    move(East);
+}
+move(North);
+```
+
+</td></tr>
+<tr><td>照料一格的代码越写越长，全挤在 <code>main</code> 里</td><td>
+
+```cpp
+void tendTile() { /* 收割、翻土、种树、浇水… */ }
+```
+
+</td></tr>
+<tr><td>一架无人机绕一圈太慢</td><td>
+
+```cpp
+spawn_drone(farmForever);
+```
+
+</td></tr>
+</table>
+
+整棵技能树有 **39 个节点**，大致按这个顺序展开：
+
+| 阶段 | 解锁内容 |
+| --- | --- |
+| 🌱 起步 | 收获 → 循环 → 加速 → 条件 → 移动 |
+| 🧭 走遍整块田 | 计数 `for`、变量、常量、运算、感知坐标、分支 `switch`、扩田 |
+| 🥕 更多作物 | 耕地、种植、胡萝卜、浇水、树木、向日葵、南瓜、仙人掌 |
+| 🧩 组织代码 | 函数、引用 `int&`、分文件 `#include`、数组、结构体、工具函数 |
+| 🧪 观察与实验 | 调试输出、计时 `get_time()`、实验田、可复现的 `simulate()` |
+| 🚀 后期玩法 | 肥料与迷宫、伴生作物、恐龙帽、自动解锁 `unlock()`、多无人机 |
+
+<p align="center">
+<img src="shots/share-skills.png" alt="技能树" width="49%">
+<img src="shots/share-error.png" alt="带行列和修改建议的报错" width="49%">
+</p>
+<p align="center"><sub>左：可拖动、可缩放的技能树　右：写错了也没关系，报错会指出行列并给出修改建议</sub></p>
+
+每个技能都附带一份**范本**程序，解锁后可以在提示窗口里展开、复制或一键载入。范本和自动通关测试读的是同一份文件，所以范本一定能跑通。
+
+## 💡 亮点
+
+- **真正的 C++ 程序形态。** 写的是 `#include <bits/stdc++.h>`、`using namespace std;`、`int main()`，而不是一门“像 C++ 的”玩具语言。解释器是逐步解锁的教学用 C++ 子集。
+- **规则可复现。** 农场按 tick 精确模拟，生长、动作、查询都有固定耗时；同样的程序、同样的种子，结果一模一样。
+- **对新手友好的编辑器。** 默认框架受保护不会被误删；报错会标出行列、波浪线和一句修改建议；单步执行时当前行高亮。
+- **自动存档。** 农场、背包、技能、代码和设置随时保存，带校验和备份；关掉再开就能继续。
+- **全部原创、全部程序化。** 小 bot、地块、草甸、树木、蝴蝶和音效都由代码生成，仓库里没有任何外部模型、贴图或音频。
+
+## 🕹 操作
 
 | 操作 | 方法 |
 | --- | --- |
-| 执行整个 main / 单步 | 代码窗口实心三角 / 空心三角 |
-| 停止程序 | 再点运行按钮，或点进编辑区 |
-| 拖动农场 / 技能树 | 按住鼠标左键拖动 |
-| 技能节点 | 轻点解锁或查看详情；拖动不会误购 |
+| 运行整个 `main` / 单步 | 代码窗口的实心 ▶ / 空心 ▷ |
+| 停止程序 | 再点一次运行按钮，或点进代码区 |
+| 平移农场 / 技能树 | 按住左键拖动 |
 | 转动视角 / 缩放 | 右键拖动 / 滚轮 |
-| 回正视角 | F，或设置中的回正入口 |
-| 代码字号 | Shift + 滚轮；Ctrl + 0 复位 |
+| 移动视角 / 回正 | WASD / F |
+| 代码字号 | Shift + 滚轮，Ctrl + 0 复位 |
 
-存档位置：`%APPDATA%\Godot\app_userdata\Codefarm\progress.json`。备份为同目录 `.bak` 文件。更换试玩包前可自行保留这两份文件。
+存档在 `%APPDATA%\Godot\app_userdata\Codefarm\progress.json`，同目录还有一份 `.bak` 备份。换新版本前可以顺手备份这两个文件。
 
-## 从源码构建
+## 🛠 从源码构建
 
-仓库包含 `third_party/godot-cpp` 源码。Godot 编辑器、编译结果和用户存档不放入 Git；试玩运行程序在 Releases 单独下载。
+需要 **CMake 3.17+**、**Ninja**、支持 **C++20** 的编译器（Windows 推荐 MinGW-w64），运行游戏还需要 **Godot 4.7.2**。仓库已包含 `third_party/godot-cpp`。
 
-需要 CMake 3.17+、Ninja、支持 C++20 的编译器；运行游戏还需要 **Godot 4.7.2**。Windows 推荐 MinGW-w64。
-
-### 只编译模拟器和测试
+<details>
+<summary><b>只编译模拟器和测试（不需要 Godot）</b></summary>
 
 ```sh
 cmake -S . -B build-tests -G Ninja -DCODEFARM_BUILD_EXTENSION=OFF
@@ -55,33 +153,81 @@ cmake --build build-tests
 ctest --test-dir build-tests --output-on-failure
 ```
 
-完整玩家路线：Linux 运行 `./build-tests/codefarm_playthrough`，Windows 运行 `build-tests/codefarm_playthrough.exe`。
+想看完整的玩家通关路线和每一档用时，运行 `build-tests/codefarm_playthrough`。
 
-### 构建 Godot 扩展
+</details>
+
+<details>
+<summary><b>构建 Godot 扩展并打开游戏</b></summary>
 
 ```sh
 cmake -S . -B build -G Ninja -DCODEFARM_BUILD_EXTENSION=ON
 cmake --build build
 ```
 
-生成的库位于 `game/bin`。Windows MinGW 构建还需要让 `libgcc_s_seh-1.dll`、`libstdc++-6.dll` 和 `libwinpthread-1.dll` 可被系统加载。用 Godot 打开 `game/project.godot`，主场景是 `scenes/main.tscn`。扩展更新后需退出并重新打开 Godot。
+生成的库会放进 `game/bin`。Windows 的 MinGW 构建还需要 `libgcc_s_seh-1.dll`、`libstdc++-6.dll`、`libwinpthread-1.dll` 能被系统找到（放进 `game/bin` 即可）。
 
-`game/export_presets.cfg` 提供 Windows 资源包导出预设；当前 Release 使用资源包与官方 Godot 程序组合。
+然后用 Godot 4.7.2 打开 `game/project.godot`，主场景是 `scenes/main.tscn`。扩展更新后要完全退出 Godot 再重新打开。
 
-## 目录与开发说明
+</details>
+
+<details>
+<summary><b>Godot 端验收脚本</b></summary>
+
+```sh
+godot --headless --path game --script scripts/verify_headless.gd   # VERIFY_OK
+godot --path game --script scripts/verify_smoke.gd                 # SMOKE_OK
+godot --path game --script scripts/verify_save.gd                  # SAVE_OK
+```
+
+所有验收脚本都使用独立的测试存档，不会碰你的游戏进度。
+
+</details>
+
+## 🧱 项目结构
+
+```mermaid
+flowchart LR
+    A["玩家代码<br/>(代码窗口)"] --> B["CodefarmHost<br/>GDExtension"]
+    B --> C["Interpreter<br/>C++ 子集解释器"]
+    C --> D["World<br/>农场规则 · tick 模拟"]
+    D -- 状态与事件 --> B
+    B --> E["Godot 4.7.2<br/>3D 农场 · 界面 · 音效"]
+```
+
+逻辑和画面完全分开：`sim/` 里的纯 C++ 模拟器决定一切规则，Godot 只负责把结果画出来，动画不会改变判定。
 
 | 目录 | 内容 |
 | --- | --- |
-| `sim/` | 纯 C++ 世界规则与解释器，无 Godot 依赖 |
-| `extension/` | GDExtension 桥接 |
-| `game/` | Godot 工程、UI、音效与程序化场景 |
-| `game/exemplars/` | 游戏和通关测试共用的范本 |
-| `tests/` | 单元测试与完整玩家路线 |
-| `docs/` | 课程、设计与检查记录 |
-| `licenses/` | 随包第三方许可 |
+| `sim/` | 世界规则与解释器，纯 C++，不依赖 Godot |
+| `extension/` | 把模拟器接进 Godot 的 GDExtension |
+| `game/` | Godot 工程：界面、3D 农场、程序化场景与音效 |
+| `game/exemplars/` | 每个技能的范本，游戏与通关测试共用 |
+| `tests/` | 单元测试，以及从新存档打到最后的整局通关测试 |
+| `docs/` | 课程设计、技能树、通关记录与检查报告 |
+| `licenses/` | 随包分发的第三方许可 |
 
-本次发布复核：C++ 1844 项检查通过；存档专项 `SAVE_OK`、真实 Vulkan 界面专项 `REFINE_0210_OK`。试玩包额外核对字体、范本读取与收割。自动化通关通过不代表所有种子和长期运行场景均已覆盖。
+## ✅ 质量
 
-仍在开发：DLC 作物与无尽挑战尚未实现；长时间迷宫求解、教学节奏和更多硬件兼容性仍需继续优化。欢迎提交操作步骤、截图和版本号反馈。
+- C++ 端 **1844 项检查**全部通过，其中包括整局通关测试：从全新存档出发，只用玩家能做的操作（攒资源、买技能、运行范本），完成全部 **45 次购买**，约 **52 分钟**游戏时间。
+- 每个技能节点都有能解析、能运行的范本。
+- Godot 端有冒烟、界面动效、技能树拖动、编辑器、存档等多项自动验收，在真实 Vulkan 渲染下运行。
 
-原创代码、美术和机制由作者与 AI 协作开发；不分发参考作品的贴图、音乐或商标资源。第三方 Godot、godot-cpp、字体与运行库保留各自许可，见 `licenses/` 与 `third_party/godot-cpp/LICENSE.md`。
+## 🗺 路线图
+
+- [ ] 主线通关后的无尽 / 优化挑战（按 tick、代码量打分，见 [设计草案](docs/endless-design.md)）
+- [ ] 迷宫长时间挂机的稳定求解
+- [ ] 更多硬件与干净系统上的兼容性验证
+- [ ] 更小的专用导出包
+
+欢迎在 [Issues](https://github.com/chang814/codefarm/issues) 里反馈：写清楚版本号、操作步骤，最好附一张截图。
+
+## 📜 致谢与许可
+
+Codefarm 的代码、画面和玩法由作者与 AI 协作开发，灵感来自编程农场类游戏；仓库不包含、也不分发任何参考作品的贴图、音乐或商标资源。
+
+第三方组件保留各自的许可：[Godot Engine](https://godotengine.org/) 与 [godot-cpp](https://github.com/godotengine/godot-cpp)（MIT）、[Noto Sans CJK](https://github.com/notofonts/noto-cjk) 与 [JetBrains Mono](https://www.jetbrains.com/lp/mono/)（SIL OFL 1.1）、Droid Sans Fallback（Apache 2.0）、MinGW 运行库（GPL + GCC Runtime Library Exception）。完整文本见 [`licenses/`](licenses/)。
+
+<div align="center">
+<sub>用一行 <code>harvest();</code> 开始。🌾</sub>
+</div>
