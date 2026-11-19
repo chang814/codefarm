@@ -37,3 +37,5 @@ __pycache__/
 /game/export_credentials.cfg
 /shots/*
 !/shots/share-*.png
+!/shots/share-*.gif
+!/shots/banner.svg
