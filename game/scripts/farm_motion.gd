@@ -196,3 +196,21 @@ static func close_overlay(backdrop: Control, card: Control, dur: float = CLOSE_D
 	tw.tween_property(card, "offset_top", base_top + LIFT, dur).set_trans(TRANS).set_ease(EASE)
 	tw.tween_property(card, "offset_bottom", base_bot + LIFT, dur).set_trans(TRANS).set_ease(EASE)
 	tw.chain().tween_callback(finish)
+
+
+## Show a short status label (for example 已复制), then fade it out.
+static func flash_label(label: Label) -> void:
+	if label == null:
+		return
+	label.visible = true
+	label.modulate = Color(1, 1, 1, 1)
+	stop(label, "_copied")
+	var tw := label.create_tween()
+	label.set_meta("_copied", tw)
+	tw.tween_interval(0.8)
+	tw.tween_property(label, "modulate:a", 0.0, 0.2)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(label):
+			label.visible = false
+			label.modulate = Color(1, 1, 1, 1)
+	)

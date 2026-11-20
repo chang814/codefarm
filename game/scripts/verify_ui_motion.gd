@@ -67,9 +67,9 @@ func controls_and_harvest_checks(main: Node) -> void:
 	main.host.advance_seconds(1.1)
 	check(main.host.get_hay() == 1, "solid run stays stopped after completion")
 	# Reproduce reset with a header active and old files present.
-	main.call("_switch_user_file", "old.hpp")
+	main.code_files.call("switch_to", "old.hpp")
 	main.editor.text = "void old() {}"
-	main.call("_flush_active_file")
+	main.code_files.call("flush_active")
 	click(main.settings_button)
 	await settle()
 	click(text_button(main.overlay_body, "重置农场"))
@@ -82,7 +82,7 @@ func controls_and_harvest_checks(main: Node) -> void:
 	click(text_button(main.overlay_body, "确认重置"))
 	await settle()
 	check(main.host.get_hay() == 0 and main.editor.text == main.STARTER.replace("\r", ""), "reset confirmation restores farm and editor")
-	check(main.get("_active_file") == "main.cpp" and main.get("_user_files").size() == 1, "reset clears user files")
+	check(main.code_files.get("active_file") == "main.cpp" and main.code_files.get("user_files").size() == 1, "reset clears user files")
 	check(main.editor.protect_framework, "reset restores main framework protection from an active header")
 	main.editor.text = main.STARTER.replace("harvest();", "harvest();\n    harvest();")
 	for expected in [1, 2]:
@@ -98,14 +98,14 @@ func controls_and_harvest_checks(main: Node) -> void:
 		main.call("_process", 0.0)
 	click(main.skill_button)
 	await settle()
-	var card: Control = main.skill_scroll.find_child("Skill_loop", true, false)
+	var card: Control = main.skill_tree.scroll.find_child("Skill_loop", true, false)
 	click(card)
 	await settle(0.5)
 	check(main.host.loops_unlocked(), "skill node buys with earned hay")
-	card = main.skill_scroll.find_child("Skill_loop", true, false)
+	card = main.skill_tree.scroll.find_child("Skill_loop", true, false)
 	click(card)
 	await settle()
-	var detail: Control = main.skill_detail
+	var detail: Control = main.skill_tree.detail
 	click(detail.find_child("CopyTemplate", true, false))
 	check(main.last_copied_template == main.FarmSkillData.exemplar("loop"), "detail copy uses shared exemplar")
 	main.editor.text = main.STARTER.replace("harvest();", "do_a_flip();")
@@ -127,8 +127,8 @@ func controls_and_harvest_checks(main: Node) -> void:
 	check(not main.host.is_running(), "solid triangle stops a running loop")
 	click(main.skill_button)
 	await settle()
-	card = main.skill_scroll.find_child("Skill_speed", true, false)
-	main.skill_scroll.ensure_control_visible(card)
+	card = main.skill_tree.scroll.find_child("Skill_speed", true, false)
+	main.skill_tree.scroll.ensure_control_visible(card)
 	await settle()
 	click(card)
 	await settle(0.5)
@@ -149,7 +149,7 @@ func controls_and_harvest_checks(main: Node) -> void:
 	var hay: int = main.host.get_hay()
 	main.host.advance_seconds(0.5)
 	main.call("_process", 0.0)
-	check(not main.host.last_action_success() and main.get("_harvesting"), "miss starts its own swing animation")
+	check(not main.host.last_action_success() and main.bot.get("harvesting"), "miss starts its own swing animation")
 	check(main.host.get_hay() == hay and main.juice_anchor.get_child_count() == 0, "miss has no income or reward particles")
 	await settle(0.12)
 	await capture("ui-028-miss")
@@ -168,7 +168,7 @@ func window_checks(main: Node) -> void:
 	var win = main.code_window
 	var original: Rect2 = win.get_rect()
 	var hint_original: Rect2 = main.hint_window.get_rect()
-	var camera: Vector3 = main.get("_cam_target")
+	var camera: Vector3 = main.camera_rig.get("target")
 	click(win.max_button)
 	check(win.maximized, "actual maximize button changes state")
 	check(same_rect(win.get_rect(), original), "docking listener must not snap maximize geometry")
@@ -187,7 +187,7 @@ func window_checks(main: Node) -> void:
 	check(same_rect(win.get_rect(), target), "maximize fills usable bounds")
 	check(win.position.y == win.max_top_margin and win.get_rect().end.y <= root.size.y - 63, "maximize respects toolbar and docked hint")
 	check(main.hint_window.minimized, "hint docks during maximize")
-	check(main.get("_cam_target") == camera, "chrome click cannot pan the farm")
+	check(main.camera_rig.get("target") == camera, "chrome click cannot pan the farm")
 	await capture("ui-028-max")
 	click(win.max_button)
 	await settle()
@@ -286,7 +286,7 @@ func window_checks(main: Node) -> void:
 	await settle()
 	check(main.hint_copied_label.visible, "repeated copy renews feedback")
 	# Restore camera through its actual topbar control.
-	main.set("_cam_yaw", float(main.call("camera_home_yaw")) + 0.5)
+	main.camera_rig.set("yaw", float(main.camera_rig.call("home_yaw")) + 0.5)
 	# 0.2.9: reset and changelog live in the settings panel, not the top bar.
 	click(main.settings_button)
 	await settle()
@@ -296,7 +296,7 @@ func window_checks(main: Node) -> void:
 	click(main.overlay_close)
 	await settle()
 	check(not main.reset_cam_button.is_visible_in_tree(), "camera reset leaves with the panel")
-	check(absf(float(main.get("_cam_yaw")) - float(main.call("camera_home_yaw"))) < 0.01, "camera reset button")
+	check(absf(float(main.camera_rig.get("yaw")) - float(main.camera_rig.call("home_yaw"))) < 0.01, "camera reset button")
 
 func run() -> void:
 	root.size = Vector2i(1440, 900)
@@ -325,12 +325,12 @@ func run() -> void:
 	var fonts = main.overlay_body.find_child("FontOptions", true, false)
 	click(fonts.buttons["20"])
 	await settle()
-	check(int(main.get("_font_size")) == 20, "font option applied")
+	check(int(main.editor_assist.get("font_size")) == 20, "font option applied")
 	check(fonts.indicator.position.distance_to(fonts.buttons["20"].position) < 0.5, "font selection glides into place")
 	for value in ["16", "18", "20"]:
 		click(fonts.buttons[value])
 		await settle()
-		check(int(main.get("_font_size")) == int(value), "font button " + value)
+		check(int(main.editor_assist.get("font_size")) == int(value), "font button " + value)
 	await capture("ui-028-settings")
 	# The modal backdrop intentionally owns input until its close button is used.
 	click(main.log_button)

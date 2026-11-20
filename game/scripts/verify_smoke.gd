@@ -366,50 +366,50 @@ func _run() -> void:
 	if not main.has_method("reset_camera"):
 		_fail("缺少 reset_camera")
 		return
-	var home_yaw: float = float(main.call("camera_home_yaw"))
-	var home_zoom: float = float(main.call("camera_home_zoom", 1))
-	main.set("_cam_yaw", home_yaw + 0.8)
-	main.set("_cam_zoom", home_zoom + 2.5)
-	main.set("_cam_pitch", 1.1)
+	var home_yaw: float = float(main.camera_rig.call("home_yaw"))
+	var home_zoom: float = float(main.camera_rig.call("home_zoom", 1))
+	main.camera_rig.set("yaw", home_yaw + 0.8)
+	main.camera_rig.set("zoom", home_zoom + 2.5)
+	main.camera_rig.set("pitch", 1.1)
 	main.call("reset_camera", true)
-	if abs(float(main.get("_cam_yaw")) - home_yaw) > 0.02:
+	if abs(float(main.camera_rig.get("yaw")) - home_yaw) > 0.02:
 		_fail("回正视角后偏航角未复位")
 		return
-	if abs(float(main.get("_cam_zoom")) - home_zoom) > 0.05:
+	if abs(float(main.camera_rig.get("zoom")) - home_zoom) > 0.05:
 		_fail("回正视角后缩放未复位")
 		return
 
 	# Wheel over the editor must not change camera zoom (with or without Shift).
 	main.call("reset_camera", true)
-	var zoom_before: float = float(main.get("_cam_zoom"))
+	var zoom_before: float = float(main.camera_rig.get("zoom"))
 	editor.grab_focus()
 	await process_frame
 	_send_wheel(editor, true)
 	_send_wheel(editor, false)
 	for _i in 3:
 		await process_frame
-	if abs(float(main.get("_cam_zoom")) - zoom_before) > 0.001:
-		_fail("代码区滚轮不应触发相机缩放（缩放 %.3f -> %.3f）" % [zoom_before, float(main.get("_cam_zoom"))])
+	if abs(float(main.camera_rig.get("zoom")) - zoom_before) > 0.001:
+		_fail("代码区滚轮不应触发相机缩放（缩放 %.3f -> %.3f）" % [zoom_before, float(main.camera_rig.get("zoom"))])
 		return
 
 	# Shift+wheel zooms font; Ctrl+0 resets.
-	var font_before: int = int(main.get("_font_size"))
-	if main.has_method("_set_editor_font_size"):
-		main.call("_set_editor_font_size", font_before + 3, false, false)
+	var font_before: int = int(main.editor_assist.get("font_size"))
+	if main.editor_assist.has_method("set_font_size"):
+		main.editor_assist.call("set_font_size", font_before + 3, false, false)
 	for _i in 3:
 		await process_frame
-	if int(main.get("_font_size")) != font_before + 3:
+	if int(main.editor_assist.get("font_size")) != font_before + 3:
 		_fail("字号缩放未生效")
 		return
 	var badge: Control = main.get("font_badge")
 	if badge == null:
 		_fail("缺少字号百分比小标")
 		return
-	if main.has_method("reset_editor_font"):
-		main.call("reset_editor_font")
+	if main.editor_assist.has_method("reset_font"):
+		main.editor_assist.call("reset_font")
 	for _i in 3:
 		await process_frame
-	if int(main.get("_font_size")) != int(main.get("_font_size_default")):
+	if int(main.editor_assist.get("font_size")) != int(main.editor_assist.get("font_size_default")):
 		_fail("Ctrl+0 / 复位后字号应回到默认")
 		return
 
@@ -419,21 +419,21 @@ func _run() -> void:
 	if not main.has_method("_text_input_has_focus") or not bool(main.call("_text_input_has_focus")):
 		_fail("编辑器有焦点时 _text_input_has_focus 应为 true")
 		return
-	var target_before: Vector3 = main.get("_cam_target")
-	var vel_before: Vector3 = main.get("_cam_vel")
+	var target_before: Vector3 = main.camera_rig.get("target")
+	var vel_before: Vector3 = main.camera_rig.get("vel")
 	# Simulate held W while focused: one process with wish=0 because focus is set.
-	main.set("_cam_vel", Vector3(0, 0, 1.5))
-	if main.has_method("_update_camera_input"):
-		main.call("_update_camera_input", 0.05)
+	main.camera_rig.set("vel", Vector3(0, 0, 1.5))
+	if main.camera_rig.has_method("update_input"):
+		main.camera_rig.call("update_input", 0.05)
 	# With focus, wish is zero so velocity should decay, not accelerate from W.
 	# Also send unhandled key F should not reset if we check focus in handler —
-	# F is handled in _handle_camera_event only when no text focus.
-	main.set("_cam_yaw", home_yaw + 0.4)
+	# F is handled in camera_rig.handle_event only when no text focus.
+	main.camera_rig.set("yaw", home_yaw + 0.4)
 	var ev := InputEventKey.new()
 	ev.pressed = true
 	ev.keycode = KEY_F
-	main.call("_handle_camera_event", ev)
-	if abs(float(main.get("_cam_yaw")) - (home_yaw + 0.4)) > 0.001:
+	main.camera_rig.call("handle_event", ev)
+	if abs(float(main.camera_rig.get("yaw")) - (home_yaw + 0.4)) > 0.001:
 		_fail("编辑器有焦点时按 F 不应复位相机")
 		return
 	# Release focus, click empty (via release), F should reset.
@@ -443,33 +443,33 @@ func _run() -> void:
 	if bool(main.call("_text_input_has_focus")):
 		_fail("释放焦点后 _text_input_has_focus 应为 false")
 		return
-	main.call("_handle_camera_event", ev)
-	if abs(float(main.get("_cam_yaw")) - home_yaw) > 0.02:
+	main.camera_rig.call("handle_event", ev)
+	if abs(float(main.camera_rig.get("yaw")) - home_yaw) > 0.02:
 		_fail("无文本焦点时按 F 应复位相机")
 		return
 	print("SMOKE camera and font ok, start font=", font_before, " vel decay=", vel_before)
 
 	# Left-drag on the ground pans (grab the ground); on the code window it does not.
 	main.call("reset_camera", true)
-	var pos_before: Vector3 = main.get("_cam_pos")
+	var pos_before: Vector3 = main.camera_rig.get("pos")
 	var ground_at := Vector2(1200, 500)
 	if bool(main.call("_point_over_ui", ground_at)):
 		_fail("烟测选的地面点被界面挡住了")
 		return
-	var grab_before: Vector3 = main.call("_camera_ground_point", ground_at)
+	var grab_before: Vector3 = main.camera_rig.call("ground_point", ground_at)
 	var left_down := InputEventMouseButton.new()
 	left_down.button_index = MOUSE_BUTTON_LEFT
 	left_down.pressed = true
 	left_down.position = ground_at
 	left_down.global_position = ground_at
-	main.call("_handle_camera_event", left_down)
+	main.camera_rig.call("handle_event", left_down)
 	var small := InputEventMouseMotion.new()
 	small.button_mask = MOUSE_BUTTON_MASK_LEFT
 	small.position = ground_at + Vector2(3, 2)
 	small.global_position = small.position
 	small.relative = Vector2(3, 2)
-	main.call("_handle_camera_event", small)
-	if Vector3(main.get("_cam_pos")).distance_to(pos_before) > 0.0001 or bool(main.get("_left_dragging")):
+	main.camera_rig.call("handle_event", small)
+	if Vector3(main.camera_rig.get("pos")).distance_to(pos_before) > 0.0001 or bool(main.camera_rig.get("left_dragging")):
 		_fail("左键移动不到阈值时应当仍算点击，不应平移")
 		return
 	var drag := InputEventMouseMotion.new()
@@ -477,25 +477,25 @@ func _run() -> void:
 	drag.position = ground_at + Vector2(-90, -50)
 	drag.global_position = drag.position
 	drag.relative = Vector2(-93, -52)
-	main.call("_handle_camera_event", drag)
-	if not bool(main.get("_left_dragging")):
+	main.camera_rig.call("handle_event", drag)
+	if not bool(main.camera_rig.get("left_dragging")):
 		_fail("在地面上左键拖过阈值应开始平移")
 		return
-	if Vector3(main.get("_cam_pos")).distance_to(pos_before) < 0.01:
+	if Vector3(main.camera_rig.get("pos")).distance_to(pos_before) < 0.01:
 		_fail("左键拖动地面应平移相机")
 		return
-	var grab_after: Vector3 = main.call("_camera_ground_point", drag.position)
+	var grab_after: Vector3 = main.camera_rig.call("ground_point", drag.position)
 	if Vector2(grab_after.x, grab_after.z).distance_to(Vector2(grab_before.x, grab_before.z)) > 0.05:
 		_fail("左键拖动应抓住地面：按下时的地面点应停在鼠标下（偏差 %.3f）" % Vector2(grab_after.x, grab_after.z).distance_to(Vector2(grab_before.x, grab_before.z)))
 		return
-	if bool(main.get("_cam_orbiting")):
+	if bool(main.camera_rig.get("orbiting")):
 		_fail("左键拖动不应旋转相机")
 		return
 	left_down.pressed = false
 	left_down.position = drag.position
 	left_down.global_position = drag.position
-	main.call("_handle_camera_event", left_down)
-	if bool(main.get("_left_dragging")):
+	main.camera_rig.call("handle_event", left_down)
+	if bool(main.camera_rig.get("left_dragging")):
 		_fail("松开左键应结束拖动")
 		return
 	for _i in 30:
@@ -503,30 +503,30 @@ func _run() -> void:
 	main.call("clear_camera_drag")
 	# Same drag starting on the code window must leave the camera alone.
 	main.call("reset_camera", true)
-	var cam_home: Vector3 = main.get("_cam_pos")
+	var cam_home: Vector3 = main.camera_rig.get("pos")
 	var code_rect: Rect2 = code_win.get_global_rect()
 	var on_code := code_rect.position + Vector2(code_rect.size.x * 0.5, minf(120.0, code_rect.size.y * 0.5))
 	left_down.pressed = true
 	left_down.position = on_code
 	left_down.global_position = on_code
-	main.call("_handle_camera_event", left_down)
+	main.camera_rig.call("handle_event", left_down)
 	var drag2 := InputEventMouseMotion.new()
 	drag2.button_mask = MOUSE_BUTTON_MASK_LEFT
 	drag2.position = on_code + Vector2(120, 60)
 	drag2.global_position = drag2.position
 	drag2.relative = Vector2(120, 60)
-	main.call("_handle_camera_event", drag2)
-	if bool(main.get("_left_dragging")) or Vector3(main.get("_cam_pos")).distance_to(cam_home) > 0.0001:
+	main.camera_rig.call("handle_event", drag2)
+	if bool(main.camera_rig.get("left_dragging")) or Vector3(main.camera_rig.get("pos")).distance_to(cam_home) > 0.0001:
 		_fail("在代码窗口上左键拖动不应平移地图")
 		return
 	left_down.pressed = false
-	main.call("_handle_camera_event", left_down)
+	main.camera_rig.call("handle_event", left_down)
 	print("SMOKE left-drag pan ok (ground pans, code window does not)")
 
 	# Right-drag rotates in place; releasing over UI must not leave the view stuck.
 	main.call("reset_camera", true)
-	var pos_home: Vector3 = main.get("_cam_pos")
-	var yaw_home: float = float(main.get("_cam_yaw"))
+	var pos_home: Vector3 = main.camera_rig.get("pos")
+	var yaw_home: float = float(main.camera_rig.get("yaw"))
 	var right_down := InputEventMouseButton.new()
 	right_down.button_index = MOUSE_BUTTON_RIGHT
 	right_down.pressed = true
@@ -534,19 +534,19 @@ func _run() -> void:
 	if main.has_method("_input"):
 		main.call("_input", right_down)
 	else:
-		main.call("_handle_camera_event", right_down)
-	if not bool(main.get("_cam_orbiting")):
+		main.camera_rig.call("handle_event", right_down)
+	if not bool(main.camera_rig.get("orbiting")):
 		_fail("在空地按下右键应开始转动视角")
 		return
 	var look := InputEventMouseMotion.new()
 	look.relative = Vector2(80, 0)
-	main.call("_handle_camera_event", look)
-	var yaw_turned: float = float(main.get("_cam_yaw"))
+	main.camera_rig.call("handle_event", look)
+	var yaw_turned: float = float(main.camera_rig.get("yaw"))
 	if abs(yaw_turned - yaw_home) < 0.02:
 		_fail("右键拖动应原地改变朝向")
 		return
-	if Vector3(main.get("_cam_pos")).distance_to(pos_home) > 0.05:
-		_fail("右键转动应原地转向，不应绕远处锚点滑移（相机位移 %.3f）" % Vector3(main.get("_cam_pos")).distance_to(pos_home))
+	if Vector3(main.camera_rig.get("pos")).distance_to(pos_home) > 0.05:
+		_fail("右键转动应原地转向，不应绕远处锚点滑移（相机位移 %.3f）" % Vector3(main.camera_rig.get("pos")).distance_to(pos_home))
 		return
 	var right_up := InputEventMouseButton.new()
 	right_up.button_index = MOUSE_BUTTON_RIGHT
@@ -556,25 +556,25 @@ func _run() -> void:
 	if main.has_method("_input"):
 		main.call("_input", right_up)
 	else:
-		main.call("_handle_camera_event", right_up)
-	if bool(main.get("_cam_orbiting")) or bool(main.get("_cam_panning")):
+		main.camera_rig.call("handle_event", right_up)
+	if bool(main.camera_rig.get("orbiting")) or bool(main.camera_rig.get("panning")):
 		_fail("在按钮上松开右键后，视角拖动应被清掉")
 		return
-	var yaw_after: float = float(main.get("_cam_yaw"))
+	var yaw_after: float = float(main.camera_rig.get("yaw"))
 	var extra := InputEventMouseMotion.new()
 	extra.relative = Vector2(120, 30)
-	main.call("_handle_camera_event", extra)
-	if abs(float(main.get("_cam_yaw")) - yaw_after) > 0.001:
+	main.camera_rig.call("handle_event", extra)
+	if abs(float(main.camera_rig.get("yaw")) - yaw_after) > 0.001:
 		_fail("在 UI 上松开后继续移动鼠标不应再带动视角")
 		return
 	print("SMOKE camera mouse ok, yaw ", yaw_home, " -> ", yaw_turned)
 
 	if get_root_viewport():
 		get_root_viewport().gui_release_focus()
-	main.set("_cam_vel", Vector3(2.0, 0.0, 2.0))
-	if main.has_method("_update_camera_input"):
-		main.call("_update_camera_input", 0.03)
-	if Vector3(main.get("_cam_vel")).length() > 0.05:
+	main.camera_rig.set("vel", Vector3(2.0, 0.0, 2.0))
+	if main.camera_rig.has_method("update_input"):
+		main.camera_rig.call("update_input", 0.03)
+	if Vector3(main.camera_rig.get("vel")).length() > 0.05:
 		_fail("松开 WASD 后视角应立即停下，不应再滑出一截")
 		return
 
@@ -605,10 +605,10 @@ func _run() -> void:
 	if bool(main.host.loops_unlocked()):
 		_fail("重置后循环不应已解锁")
 		return
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "loop")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "loop")
 	else:
-		main.call("_on_skill_node_clicked", "loop", loop_card)
+		main.skill_tree.call("on_node_clicked", "loop", loop_card)
 	for _i in 8:
 		await process_frame
 	if bool(main.host.loops_unlocked()):
@@ -639,10 +639,10 @@ func _run() -> void:
 	if loop_card == null:
 		_fail("攒够干草后技能树缺少循环图标")
 		return
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "loop")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "loop")
 	else:
-		main.call("_on_skill_node_clicked", "loop", loop_card)
+		main.skill_tree.call("on_node_clicked", "loop", loop_card)
 	var waited := 0
 	while waited < 40 and not bool(main.host.loops_unlocked()):
 		await process_frame
@@ -656,18 +656,18 @@ func _run() -> void:
 	if int(main.host.get_hay()) != 0:
 		_fail("解锁循环后余额应为 0，实际 %d" % int(main.host.get_hay()))
 		return
-	var detail: Control = main.get("skill_detail")
+	var detail: Control = main.skill_tree.get("detail")
 	if detail and detail.visible:
 		_fail("第一次点击解锁时不应打开详情")
 		return
 	loop_card = overlay.find_child("Skill_loop", true, false)
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "loop")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "loop")
 	else:
-		main.call("_on_skill_node_clicked", "loop", loop_card)
+		main.skill_tree.call("on_node_clicked", "loop", loop_card)
 	for _i in 8:
 		await process_frame
-	detail = main.get("skill_detail")
+	detail = main.skill_tree.get("detail")
 	if detail == null or not detail.visible:
 		_fail("已解锁技能再点应打开详情小窗")
 		return
@@ -675,7 +675,7 @@ func _run() -> void:
 	if detail_code == null or str(detail_code.text).find("while") < 0:
 		_fail("详情小窗应展示循环模板代码")
 		return
-	main.call("_copy_selected_skill_template")
+	main.skill_tree.call("copy_selected_template")
 	if str(main.get("last_copied_template")).find("while (true)") < 0:
 		_fail("复制按钮应写下完整模板")
 		return
@@ -713,10 +713,10 @@ func _run() -> void:
 		_fail("范本应可再展开")
 		return
 	# A locked skill shows no exemplar and copies nothing.
-	main.call("open_skill_detail", "iff")
+	main.skill_tree.call("open_detail", "iff")
 	for _i in 4:
 		await process_frame
-	detail = main.get("skill_detail")
+	detail = main.skill_tree.get("detail")
 	if not is_instance_valid(detail):
 		_fail("技能详情实例缺失")
 		return
@@ -725,11 +725,11 @@ func _run() -> void:
 		_fail("未解锁技能的详情不应显示范本")
 		return
 	main.set("last_copied_template", "")
-	main.call("_copy_selected_skill_template")
+	main.skill_tree.call("copy_selected_template")
 	if str(main.get("last_copied_template")) != "":
 		_fail("未解锁技能不应能复制范本")
 		return
-	main.call("_close_skill_detail")
+	main.skill_tree.call("close_detail")
 	print("SMOKE hint exemplar visible and copyable")
 	main.call("_close_panel")
 
@@ -763,10 +763,10 @@ func _run() -> void:
 	if speed_card == null:
 		_fail("攒够干草后技能树缺少加速图标")
 		return
-	if main.has_method("click_skill_node"):
-		main.call("click_skill_node", "speed")
+	if main.skill_tree.has_method("click"):
+		main.skill_tree.call("click", "speed")
 	else:
-		main.call("_on_skill_node_clicked", "speed", speed_card)
+		main.skill_tree.call("on_node_clicked", "speed", speed_card)
 	for _i in 24:
 		await process_frame
 	if not bool(main.host.speed_unlocked()):
@@ -866,8 +866,8 @@ func _run() -> void:
 		if (scroll as ScrollContainer).horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_NEVER 				and (scroll as ScrollContainer).vertical_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED:
 			_fail("技能树应能纵向（及必要时横向）滚动")
 			return
-	if main.has_method("scroll_skills_toward"):
-		main.call("scroll_skills_toward", "mega")
+	if main.skill_tree.has_method("scroll_toward"):
+		main.skill_tree.call("scroll_toward", "mega")
 	elif scroll is ScrollContainer:
 		(scroll as ScrollContainer).scroll_vertical = 1200
 	for _i in 8:
@@ -911,8 +911,8 @@ func _run() -> void:
 	var size_before := int(main.host.get_world_size())
 	if main.host.has_method("debug_grant"):
 		main.host.call("debug_grant", "expand")
-	if main.has_method("_ensure_farm_size"):
-		main.call("_ensure_farm_size", int(main.host.get_world_size()))
+	if main.field.has_method("ensure_size"):
+		main.field.call("ensure_size", int(main.host.get_world_size()))
 	for _i in 6:
 		await process_frame
 	var size_after := int(main.host.get_world_size())
@@ -974,38 +974,38 @@ int main() {
 	print("SMOKE simulate() ran")
 
 	# Multi-file bar appears only after include is unlocked.
-	if main.get("_file_bar_wrap") != null and bool(main.get("_file_bar_wrap").visible):
+	if main.code_files.get("file_bar_wrap") != null and bool(main.code_files.get("file_bar_wrap").visible):
 		_fail("未解锁分文件时不应露出文件栏")
 		return
 	if main.host.has_method("debug_grant"):
 		main.host.call("debug_grant", "func")
 		main.host.call("debug_grant", "include")
-	if main.has_method("_refresh_file_bar_visibility"):
-		main.call("_refresh_file_bar_visibility")
+	if main.code_files.has_method("refresh_bar_visibility"):
+		main.code_files.call("refresh_bar_visibility")
 	for _i in 4:
 		await process_frame
-	var bar_wrap = main.get("_file_bar_wrap")
+	var bar_wrap = main.code_files.get("file_bar_wrap")
 	if bar_wrap == null or not bool(bar_wrap.visible):
 		_fail("解锁分文件后应出现可切换的文件栏")
 		return
-	if main.has_method("_new_user_file"):
-		main.call("_new_user_file")
+	if main.code_files.has_method("new_file"):
+		main.code_files.call("new_file")
 	for _i in 4:
 		await process_frame
-	if str(main.get("_active_file")) == "main.cpp":
+	if str(main.code_files.get("active_file")) == "main.cpp":
 		_fail("新建用户文件后应能切离 main.cpp")
 		return
-	if main.has_method("_switch_user_file"):
-		main.call("_switch_user_file", "main.cpp")
+	if main.code_files.has_method("switch_to"):
+		main.code_files.call("switch_to", "main.cpp")
 	print("SMOKE multi-file editor ok")
 	# Isolated UI fixture: the existing smoke grants above expose file controls.
 	# Full gameplay progression is verified separately without grants in C++.
-	main.call("open_skill_detail", "include")
-	var load_button = main.skill_detail.find_child("InsertTemplate", true, false)
+	main.skill_tree.call("open_detail", "include")
+	var load_button = main.skill_tree.detail.find_child("InsertTemplate", true, false)
 	load_button.pressed.emit()
 	var headers: Dictionary = load("res://scripts/skill_data.gd").exemplar_headers("include")
 	for name in headers:
-		if main.get("_user_files").get(name, "") != headers[name]:
+		if main.code_files.get("user_files").get(name, "") != headers[name]:
 			_fail("载入分文件范本时必须同时载入头文件 " + name)
 			return
 	main.set("hint_skill_id", "include")
@@ -1015,7 +1015,7 @@ int main() {
 	if headers.is_empty() or main.get("last_copied_template") != headers[headers.keys()[0]]:
 		_fail("提示中的头文件复制按钮必须复制同源头文件")
 		return
-	main.call("_close_skill_detail")
+	main.skill_tree.call("close_detail")
 	print("SMOKE exemplar headers load and copy ok")
 
 	await _save_screenshots(main)
@@ -1040,15 +1040,17 @@ func _send_wheel(editor: Control, shift: bool) -> void:
 	var main := editor.get_tree().root.get_child(editor.get_tree().root.get_child_count() - 1)
 	# Prefer the scene main node.
 	for child in editor.get_tree().root.get_children():
-		if child.has_method("_on_editor_gui_input"):
-			child.call("_on_editor_gui_input", ev)
-			if child.has_method("_handle_camera_event"):
-				var zoom_before: float = float(child.get("_cam_zoom"))
-				child.call("_handle_camera_event", ev)
-				# _handle_camera_event should no-op when over editor; if it isn't
+		var assist: Node = child.get("editor_assist")
+		if assist:
+			assist.call("gui_input", ev)
+			var rig: Node = child.get("camera_rig")
+			if rig:
+				var zoom_before: float = float(rig.get("zoom"))
+				rig.call("handle_event", ev)
+				# handle_event should no-op when over editor; if it isn't
 				# over editor in headless, still restore.
-				if abs(float(child.get("_cam_zoom")) - zoom_before) > 0.0 and shift:
-					child.set("_cam_zoom", zoom_before)
+				if abs(float(rig.get("zoom")) - zoom_before) > 0.0 and shift:
+					rig.set("zoom", zoom_before)
 			return
 
 
@@ -1076,14 +1078,14 @@ func _save_screenshots(main: Node) -> void:
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
 	# Skills shot: scroll so later branches (pumpkin / maze / dino / mega) are in view.
-	main.set("_selected_skill_id", "")
+	main.skill_tree.set("selected_id", "")
 	main.call("_toggle_panel", "skill")
 	for _i in 8:
 		await process_frame
-	if main.has_method("scroll_skills_toward"):
-		main.call("scroll_skills_toward", "pumpkin")
-	elif main.get("skill_scroll"):
-		main.get("skill_scroll").scroll_vertical = 1100
+	if main.skill_tree.has_method("scroll_toward"):
+		main.skill_tree.call("scroll_toward", "pumpkin")
+	elif main.skill_tree.get("scroll"):
+		main.skill_tree.get("scroll").scroll_vertical = 1100
 	for _i in 10:
 		await process_frame
 	var img: Image = vp.get_texture().get_image()
@@ -1201,23 +1203,23 @@ int main() {
 		main.code_window.visible = false
 	if main.hint_window:
 		main.hint_window.visible = false
-	main.set("_shot_hide_plants", false)
+	main.field.set("hide_plants", false)
 	main.host.advance_seconds(0.75)
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
 	# Oblique 35° view, tile about half the frame, hoe on the right.
-	main.set("_cam_yaw", 0.42)
-	main.set("_cam_yaw_s", 0.42)
-	main.set("_cam_zoom", 2.30)
-	main.set("_cam_zoom_s", 2.30)
-	main.set("_cam_target", Vector3(0.02, 0.06, 0.02))
-	main.set("_cam_target_s", Vector3(0.02, 0.06, 0.02))
-	main.set("_cam_pitch", 0.611)  # 35 deg
-	main.set("_cam_pitch_s", 0.611)
-	if main.has_method("_sync_pos_from_target"):
-		main.call("_sync_pos_from_target")
-	if main.has_method("_apply_camera_transform"):
-		main.call("_apply_camera_transform")
+	main.camera_rig.set("yaw", 0.42)
+	main.camera_rig.set("yaw_s", 0.42)
+	main.camera_rig.set("zoom", 2.30)
+	main.camera_rig.set("zoom_s", 2.30)
+	main.camera_rig.set("target", Vector3(0.02, 0.06, 0.02))
+	main.camera_rig.set("target_s", Vector3(0.02, 0.06, 0.02))
+	main.camera_rig.set("pitch", 0.611)  # 35 deg
+	main.camera_rig.set("pitch_s", 0.611)
+	if main.camera_rig.has_method("sync_pos_from_target"):
+		main.camera_rig.call("sync_pos_from_target")
+	if main.camera_rig.has_method("apply_transform"):
+		main.camera_rig.call("apply_transform")
 	for _i in 16:
 		await process_frame
 	img = vp.get_texture().get_image()
@@ -1225,10 +1227,10 @@ int main() {
 		img.save_png(path.path_join("bot-closeup.png"))
 		print("SMOKE screenshot bot-closeup.png")
 	# Mid-harvest pose (snapped, so the swing reads clearly).
-	main.set("_harvesting", true)
-	var hoe_n = main.get("_bot_hoe")
-	var arm_r = main.get("_bot_arm_r")
-	var rig = main.get("_bot_rig")
+	main.bot.set("harvesting", true)
+	var hoe_n = main.bot.get("hoe")
+	var arm_r = main.bot.get("arm_r")
+	var rig = main.bot.get("rig")
 	var hoe_rest = hoe_n.rotation if hoe_n else Vector3.ZERO
 	var arm_rest = arm_r.rotation if arm_r else Vector3.ZERO
 	var rig_rest_x := float(rig.rotation.x) if rig else 0.0
@@ -1250,20 +1252,20 @@ int main() {
 		arm_r.rotation = arm_rest
 	if rig:
 		rig.rotation.x = rig_rest_x
-	main.set("_harvesting", false)
+	main.bot.set("harvesting", false)
 	# A second, clearly orbited camera angle.
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
-	main.set("_cam_yaw", float(main.get("_cam_yaw")) + 0.85)
-	main.set("_cam_yaw_s", float(main.get("_cam_yaw")))
-	main.set("_cam_pitch", 0.85)
-	main.set("_cam_pitch_s", 0.85)
-	main.set("_cam_zoom", 3.4)
-	main.set("_cam_zoom_s", 3.4)
-	if main.has_method("_sync_pos_from_target"):
-		main.call("_sync_pos_from_target")
-	if main.has_method("_apply_camera_transform"):
-		main.call("_apply_camera_transform")
+	main.camera_rig.set("yaw", float(main.camera_rig.get("yaw")) + 0.85)
+	main.camera_rig.set("yaw_s", float(main.camera_rig.get("yaw")))
+	main.camera_rig.set("pitch", 0.85)
+	main.camera_rig.set("pitch_s", 0.85)
+	main.camera_rig.set("zoom", 3.4)
+	main.camera_rig.set("zoom_s", 3.4)
+	if main.camera_rig.has_method("sync_pos_from_target"):
+		main.camera_rig.call("sync_pos_from_target")
+	if main.camera_rig.has_method("apply_transform"):
+		main.camera_rig.call("apply_transform")
 	for _i in 8:
 		await process_frame
 	img = vp.get_texture().get_image()
@@ -1286,15 +1288,15 @@ int main() {
 		main.code_window.visible = false
 	if main.hint_window:
 		main.hint_window.visible = false
-	main.set("_shot_hide_plants", false)
+	main.field.set("hide_plants", false)
 	if main.host.has_method("debug_grant"):
 		for sid in ["iff", "move", "till", "plant", "senses", "carrot", "expand"]:
 			main.host.call("debug_grant", sid)
 	if main.host.has_method("debug_add_item"):
 		main.host.call("debug_add_item", "hay", 40)
 		main.host.call("debug_add_item", "wood", 40)
-	if main.has_method("_ensure_farm_size"):
-		main.call("_ensure_farm_size", int(main.host.get_world_size()))
+	if main.field.has_method("ensure_size"):
+		main.field.call("ensure_size", int(main.host.get_world_size()))
 	if main.host.has_method("debug_grant"):
 		main.host.call("debug_grant", "forl")
 		main.host.call("debug_grant", "vars")
@@ -1337,27 +1339,27 @@ int main() {
 		_fail("胡萝卜演示田里没有胡萝卜")
 		return
 	var focus := Vector3.ZERO
-	if main.has_method("_tile_world"):
+	if main.field.has_method("tile_world"):
 		for y in wn:
 			for x in wn:
 				if str(main.host.tile_entity(x, y)) == "Carrot":
-					focus = main.call("_tile_world", x, y)
+					focus = main.field.call("tile_world", x, y)
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
-	main.set("_cam_target", focus)
-	main.set("_cam_target_s", focus)
-	main.set("_cam_yaw", 0.62)
-	main.set("_cam_yaw_s", 0.62)
-	main.set("_cam_pitch", 0.62)
-	main.set("_cam_pitch_s", 0.62)
-	main.set("_cam_zoom", 2.55)
-	main.set("_cam_zoom_s", 2.55)
-	if main.has_method("_sync_pos_from_target"):
-		main.call("_sync_pos_from_target")
-	if main.has_method("_apply_camera_transform"):
-		main.call("_apply_camera_transform")
-	if main.has_method("_update_grass"):
-		main.call("_update_grass", 0.05)
+	main.camera_rig.set("target", focus)
+	main.camera_rig.set("target_s", focus)
+	main.camera_rig.set("yaw", 0.62)
+	main.camera_rig.set("yaw_s", 0.62)
+	main.camera_rig.set("pitch", 0.62)
+	main.camera_rig.set("pitch_s", 0.62)
+	main.camera_rig.set("zoom", 2.55)
+	main.camera_rig.set("zoom_s", 2.55)
+	if main.camera_rig.has_method("sync_pos_from_target"):
+		main.camera_rig.call("sync_pos_from_target")
+	if main.camera_rig.has_method("apply_transform"):
+		main.camera_rig.call("apply_transform")
+	if main.field.has_method("update"):
+		main.field.call("update", 0.05)
 	for _i in 12:
 		await process_frame
 	img = vp.get_texture().get_image()
@@ -1394,18 +1396,18 @@ int main() {
 	if not bool(main.host.maze_active()):
 		_fail("迷宫演示后 maze_active 应为真，田里应有篱笆和宝藏")
 		return
-	if main.has_method("_update_grass"):
-		main.call("_update_grass", 0.05)
+	if main.field.has_method("update"):
+		main.field.call("update", 0.05)
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
-	main.set("_cam_pitch", 0.95)
-	main.set("_cam_pitch_s", 0.95)
-	main.set("_cam_zoom", 4.6)
-	main.set("_cam_zoom_s", 4.6)
-	if main.has_method("_sync_pos_from_target"):
-		main.call("_sync_pos_from_target")
-	if main.has_method("_apply_camera_transform"):
-		main.call("_apply_camera_transform")
+	main.camera_rig.set("pitch", 0.95)
+	main.camera_rig.set("pitch_s", 0.95)
+	main.camera_rig.set("zoom", 4.6)
+	main.camera_rig.set("zoom_s", 4.6)
+	if main.camera_rig.has_method("sync_pos_from_target"):
+		main.camera_rig.call("sync_pos_from_target")
+	if main.camera_rig.has_method("apply_transform"):
+		main.camera_rig.call("apply_transform")
 	for _i in 10:
 		await process_frame
 	img = vp.get_texture().get_image()
@@ -1432,8 +1434,8 @@ int main() {
 		main.host.call("debug_grant", "mega")
 		main.host.call("debug_grant", "func")
 		main.host.call("debug_grant", "move")
-	if main.has_method("_ensure_farm_size"):
-		main.call("_ensure_farm_size", int(main.host.get_world_size()))
+	if main.field.has_method("ensure_size"):
+		main.field.call("ensure_size", int(main.host.get_world_size()))
 	main.editor.text = """#include <bits/stdc++.h>
 using namespace std;
 
@@ -1447,25 +1449,25 @@ int main() {
 """
 	main.call("_on_run")
 	main.host.advance_seconds(3.0)
-	if main.has_method("_sync_drone_fleet"):
-		main.call("_sync_drone_fleet")
-	if main.has_method("_update_drone"):
-		main.call("_update_drone", 0.05)
+	if main.bot.has_method("sync_fleet"):
+		main.bot.call("sync_fleet")
+	if main.bot.has_method("update"):
+		main.bot.call("update", 0.05)
 	for _i in 12:
 		await process_frame
-	if main.has_method("visible_drone_nodes") and int(main.call("visible_drone_nodes")) < 2:
+	if main.bot.has_method("visible_drone_nodes") and int(main.bot.call("visible_drone_nodes")) < 2:
 		_fail("画面上应能同时看到至少两台无人机")
 		return
 	if main.has_method("reset_camera"):
 		main.call("reset_camera", true)
-	main.set("_cam_pitch", 0.85)
-	main.set("_cam_pitch_s", 0.85)
-	main.set("_cam_zoom", 4.2)
-	main.set("_cam_zoom_s", 4.2)
-	if main.has_method("_sync_pos_from_target"):
-		main.call("_sync_pos_from_target")
-	if main.has_method("_apply_camera_transform"):
-		main.call("_apply_camera_transform")
+	main.camera_rig.set("pitch", 0.85)
+	main.camera_rig.set("pitch_s", 0.85)
+	main.camera_rig.set("zoom", 4.2)
+	main.camera_rig.set("zoom_s", 4.2)
+	if main.camera_rig.has_method("sync_pos_from_target"):
+		main.camera_rig.call("sync_pos_from_target")
+	if main.camera_rig.has_method("apply_transform"):
+		main.camera_rig.call("apply_transform")
 	for _i in 8:
 		await process_frame
 	img = vp.get_texture().get_image()
